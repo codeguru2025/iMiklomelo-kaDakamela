@@ -3,6 +3,11 @@ import { pgTable, text, varchar, integer, boolean, timestamp, decimal, pgEnum } 
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+// Re-export auth models for Replit Auth integration
+export * from "./models/auth";
+
+export const ticketStatusEnum = pgEnum("ticket_status", ["valid", "used", "expired", "cancelled"]);
+
 export const userRoleEnum = pgEnum("user_role", ["public", "attendee", "exhibitor", "sponsor", "admin"]);
 export const attendanceTypeEnum = pgEnum("attendance_type", ["standard", "vip", "delegation"]);
 export const depositStatusEnum = pgEnum("deposit_status", ["pending", "paid", "expired", "refunded"]);
@@ -164,6 +169,21 @@ export const auditLogs = pgTable("audit_logs", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export const tickets = pgTable("tickets", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  ticketCode: text("ticket_code").notNull().unique(),
+  attendeeId: varchar("attendee_id").references(() => attendees.id).notNull(),
+  reservationId: varchar("reservation_id").references(() => reservations.id),
+  attendanceType: attendanceTypeEnum("attendance_type").notNull(),
+  status: ticketStatusEnum("status").default("valid").notNull(),
+  qrData: text("qr_data").notNull(),
+  campDetails: text("camp_details"),
+  selectedServices: text("selected_services").array(),
+  eventDates: text("event_dates"),
+  scannedAt: timestamp("scanned_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({ id: true, createdAt: true });
 export const insertAttendeeSchema = createInsertSchema(attendees).omit({ id: true, createdAt: true });
@@ -176,6 +196,7 @@ export const insertPastEventSchema = createInsertSchema(pastEvents).omit({ id: t
 export const insertAwardeeSchema = createInsertSchema(awardees).omit({ id: true, createdAt: true });
 export const insertMediaAssetSchema = createInsertSchema(mediaAssets).omit({ id: true, createdAt: true });
 export const insertAnnouncementSchema = createInsertSchema(announcements).omit({ id: true, createdAt: true });
+export const insertTicketSchema = createInsertSchema(tickets).omit({ id: true, createdAt: true });
 
 // Types
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -200,3 +221,5 @@ export type InsertMediaAsset = z.infer<typeof insertMediaAssetSchema>;
 export type MediaAsset = typeof mediaAssets.$inferSelect;
 export type InsertAnnouncement = z.infer<typeof insertAnnouncementSchema>;
 export type Announcement = typeof announcements.$inferSelect;
+export type InsertTicket = z.infer<typeof insertTicketSchema>;
+export type Ticket = typeof tickets.$inferSelect;

@@ -239,8 +239,16 @@ export default function Home() {
                   {sponsor.isPrimarySponsor && (
                     <Badge className="mb-2 bg-primary text-primary-foreground">Main Sponsor</Badge>
                   )}
-                  <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-3">
-                    <Building2 className="w-8 h-8 text-muted-foreground" />
+                  <div className="w-20 h-20 rounded-lg bg-white flex items-center justify-center mb-3 p-2">
+                    {sponsor.logoUrl ? (
+                      <img 
+                        src={sponsor.logoUrl} 
+                        alt={sponsor.name}
+                        className="w-full h-full object-contain"
+                      />
+                    ) : (
+                      <Building2 className="w-10 h-10 text-muted-foreground" />
+                    )}
                   </div>
                   <h4 className="font-semibold">{sponsor.name}</h4>
                   {sponsor.sponsorshipTier && (

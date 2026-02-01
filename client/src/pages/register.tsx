@@ -109,7 +109,7 @@ export default function Register() {
 
   const registerMutation = useMutation({
     mutationFn: async (data: RegistrationForm) => {
-      return apiRequest("POST", "/api/attendees", {
+      const response = await apiRequest("POST", "/api/attendees", {
         fullName: data.fullName,
         email: data.email,
         phone: data.phone,
@@ -125,14 +125,25 @@ export default function Register() {
         departureDate: data.departureDate?.toISOString() || null,
         marketingConsent: data.marketingConsent,
       });
+      const attendee = await response.json();
+      return { attendee, needsAccommodation: data.needsAccommodation };
     },
-    onSuccess: () => {
-      toast({
-        title: "Registration Successful!",
-        description: "You will receive a confirmation email shortly. Thank you for registering!",
-      });
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/attendees"] });
-      navigate("/");
+      
+      if (data.needsAccommodation) {
+        toast({
+          title: "Registration Successful!",
+          description: "Now proceed to book your accommodation.",
+        });
+        navigate("/accommodation");
+      } else {
+        toast({
+          title: "Registration Successful!",
+          description: "Your digital ticket has been generated!",
+        });
+        navigate(`/ticket/${data.attendee.id}`);
+      }
     },
     onError: (error: Error) => {
       toast({

@@ -15,6 +15,7 @@ import Sponsors from "@/pages/sponsors";
 import Register from "@/pages/register";
 import Apply from "@/pages/apply";
 import Admin from "@/pages/admin";
+import TicketPage from "@/pages/ticket";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -28,6 +29,7 @@ function Router() {
       <Route path="/register" component={Register} />
       <Route path="/apply" component={Apply} />
       <Route path="/admin" component={Admin} />
+      <Route path="/ticket/:attendeeId" component={TicketPage} />
       <Route component={NotFound} />
     </Switch>
   );

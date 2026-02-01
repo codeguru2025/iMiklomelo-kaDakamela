@@ -1,0 +1,460 @@
+PROJECT OVERVIEW
+
+Build a production-ready, mobile-first, high-scalability web application for Imiklomelo Ka Dakamela, the official Chief Dakamela Achievers Awards & Cultural Gathering.
+
+The platform must handle hundreds of thousands of users, including international guests, under intermittent connectivity, while enforcing secure identity, payments, access control, and cultural authority.
+
+This is a LIVE SYSTEM (not a demo).
+
+🚫 CULTURAL & FUNCTIONAL NON-NEGOTIABLES
+
+❌ No public nominations
+
+❌ No award categories
+
+❌ No voting
+
+❌ No popularity scoring
+
+Awards are selected and conferred solely by the Chief.
+The platform only documents official outcomes and history.
+
+🔐 AUTHENTICATION & IDENTITY (MANDATORY)
+Authentication Methods
+
+Google OAuth 2.0 (Primary)
+
+Email + password (fallback)
+
+OAuth Requirements
+
+Use Google OAuth securely
+
+Link OAuth users to internal user records
+
+Require profile completion after first OAuth login
+
+Prevent duplicate accounts
+
+👥 USER ROLES
+1. Public (No Login)
+
+View upcoming event details
+
+View camping prices & services
+
+View sponsors & exhibitors
+
+View past events archive (2025 included)
+
+View past awardees with photos & awards
+
+Autoplay background video (muted, optimized)
+
+2. Attendees & Campers (AUTH REQUIRED)
+
+⚠️ ALL attendees MUST register (camping or not).
+
+Required Data Collection
+
+Full name
+
+Email
+
+Phone number
+
+Gender
+
+Age range
+
+Country
+
+City / Town
+
+Profession / Industry (optional)
+
+Attendance type
+
+First-time or returning attendee
+
+Data is used for:
+
+Future events
+
+Product marketing
+
+Demographic analysis
+
+Must be:
+
+Secure
+
+Exportable
+
+Admin-only visibility
+
+🏕️ CAMPING & SERVICES (LOCKED)
+Base Pricing
+
+$25 USD per day
+
+$60 USD full camp duration
+
+Optional Add-On Services
+
+Selectable during booking:
+
+Breakfast
+
+Lunch
+
+Supper
+
+Bathing Water
+
+Massage Spa
+
+Ice Ice Bath
+
+WiFi
+
+Charging Station
+
+Each service:
+
+Capacity-based
+
+Date-bound
+
+Admin configurable
+
+💳 PAYMENTS – PAYNOW (LIVE ONLY)
+Requirements
+
+LIVE Paynow integration
+
+Credentials loaded from environment variables:
+
+PAYNOW_INTEGRATION_ID
+
+PAYNOW_INTEGRATION_KEY
+
+No sandbox / test mode
+
+Server-side payment initiation
+
+Payment verification (polling / callbacks)
+
+Store:
+
+Reference
+
+Amount
+
+Status
+
+Timestamp
+
+Deposit Logic
+
+No payment = no reservation
+
+Reservation states:
+
+Pending
+
+Paid
+
+Expired
+
+Cancelled
+
+Auto-expire unpaid reservations
+
+Idempotent payment handling
+
+🎟️ TICKETING SYSTEM (CRITICAL FEATURE)
+Ticket Generation
+
+Automatically generate a digital ticket after:
+
+Successful registration (non-campers)
+
+OR successful camping deposit payment
+
+Ticket must include:
+
+Full name
+
+Ticket ID
+
+Attendance type
+
+Camp details (if applicable)
+
+Selected services
+
+Dates
+
+QR Code
+
+QR Code Rules
+
+QR code is unique and non-guessable
+
+Encodes ticket ID (not raw personal data)
+
+Scanning QR must:
+
+Fetch ticket data securely from backend
+
+Display attendee/camper details
+
+Show access status (Valid / Expired / Cancelled)
+
+Usage
+
+QR tickets will be used at the camp for access control
+
+Must work on mobile devices
+
+Fast lookup (low latency)
+
+🏕️ CAMP CENTRE (UI FEATURE)
+
+The camp includes a central thatched house with:
+
+Bar
+
+Pool tables
+
+Liquor
+
+Social lounge
+
+Must be:
+
+Visually highlighted
+
+Included in media gallery
+
+Positioned as the social heart of the camp
+
+🏛️ PAST EVENTS & HERITAGE ARCHIVE
+Mandatory
+
+Multi-year archive
+
+2025 edition MUST be included
+
+Each event includes:
+
+Year
+
+Summary
+
+Awardees
+
+Awards conferred
+
+Photos
+
+Videos
+
+Sponsors of that year
+
+Public = read-only
+Admin = full edit control
+
+🏢 SPONSORS & BRANDING
+Sponsors
+
+Kingdom Blue – PRIMARY SPONSOR
+
+Always displayed first
+
+Locked (cannot be removed)
+
+Chibikhulu – Sponsor
+
+Assets
+
+Use uploaded sponsor logos
+
+Ensure responsive, optimized display
+
+Respect brand prominence hierarchy
+
+🎛️ ADMIN PANEL (CMS-GRADE)
+
+Admins must be able to:
+
+Manage:
+
+Events
+
+Camping capacity & pricing
+
+Services
+
+Images & videos
+
+Past events
+
+Awardees
+
+View:
+
+Attendee demographics
+
+Revenue
+
+Occupancy
+
+Export data (CSV)
+
+Full audit logs
+
+❌ No nomination or voting tools.
+
+🎥 MEDIA REQUIREMENTS
+
+Background video on landing pages
+
+Autoplay, muted, looped
+
+Lazy-loaded
+
+Fallback image for poor connectivity
+
+⚙️ TECH STACK (LOCKED)
+Frontend
+
+React
+
+Tailwind CSS
+
+Lucide-React icons
+
+wouter routing
+
+Mobile-first
+
+PWA enabled
+
+Backend
+
+Node.js (Express)
+
+Drizzle ORM
+
+Thin controllers
+
+Strong validation
+
+Database (PostgreSQL)
+
+Tables must include:
+
+users
+
+oauth_accounts
+
+attendees
+
+demographics
+
+camps
+
+camp_services
+
+reservations
+
+payments
+
+tickets
+
+companies
+
+sponsorships
+
+exhibitors
+
+past_events
+
+awardees
+
+awards
+
+media_assets
+
+audit_logs
+
+🔐 NON-NEGOTIABLE SYSTEM REQUIREMENTS
+Security
+
+OAuth security best practices
+
+Encrypted passwords
+
+Secure cookies
+
+RBAC
+
+Rate limiting
+
+Audit logging
+
+OWASP Top 10 compliance
+
+Scalability
+
+100k+ concurrent users
+
+Stateless backend
+
+Optimized queries
+
+CDN-ready media
+
+Operability
+
+Zero downtime
+
+Reservation locking
+
+Idempotent payments
+
+Graceful degradation
+
+Maintainability
+
+Schema-first
+
+Typed codebase
+
+Modular services
+
+Easy future expansion
+
+🎯 FINAL OUTPUT EXPECTATION
+
+Generate:
+
+OAuth implementation
+
+Paynow live payment flow
+
+Ticket & QR system
+
+Admin CMS
+
+Frontend UI
+
+Backend APIs
+
+Database schema
+
+PWA setup
+
+This is a LIVE, CULTURAL, HIGH-SECURITY PLATFORM — build accordingly.

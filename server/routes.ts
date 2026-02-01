@@ -8,11 +8,16 @@ import {
 import { z } from "zod";
 import { initializePayment, checkPaymentStatus, isPaymentComplete, verifyPaynowHash } from "./paynow";
 import { randomUUID } from "crypto";
+import { setupAuth, registerAuthRoutes } from "./replit_integrations/auth";
 
 export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
+  
+  // Setup Replit Auth (MUST be before other routes)
+  await setupAuth(app);
+  registerAuthRoutes(app);
   
   // Attendees
   app.get("/api/attendees", async (req, res) => {
@@ -24,15 +29,47 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/attendees/:id", async (req, res) => {
+    try {
+      const attendee = await storage.getAttendee(req.params.id);
+      if (!attendee) {
+        res.status(404).json({ error: "Attendee not found" });
+        return;
+      }
+      res.json(attendee);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch attendee" });
+    }
+  });
+
   app.post("/api/attendees", async (req, res) => {
     try {
       const data = insertAttendeeSchema.parse(req.body);
       const attendee = await storage.createAttendee(data);
+      
+      // Auto-generate ticket for non-camping attendees
+      if (!data.needsAccommodation) {
+        const ticketCode = `DK-${Date.now().toString(36).toUpperCase()}-${randomUUID().slice(0, 6).toUpperCase()}`;
+        const qrData = JSON.stringify({ code: ticketCode, v: 1 });
+        
+        await storage.createTicket({
+          ticketCode,
+          attendeeId: attendee.id,
+          reservationId: null,
+          attendanceType: attendee.attendanceType,
+          qrData,
+          campDetails: null,
+          selectedServices: null,
+          status: "valid",
+        });
+      }
+      
       res.status(201).json(attendee);
     } catch (error) {
       if (error instanceof z.ZodError) {
         res.status(400).json({ error: "Invalid data", details: error.errors });
       } else {
+        console.error("Attendee creation error:", error);
         res.status(500).json({ error: "Failed to create attendee" });
       }
     }
@@ -429,6 +466,126 @@ export async function registerRoutes(
       res.send(csv);
     } catch (error) {
       res.status(500).json({ error: "Failed to export attendees" });
+    }
+  });
+
+  // Tickets - Generate ticket for attendee
+  app.post("/api/tickets", async (req, res) => {
+    try {
+      const { attendeeId, reservationId } = req.body;
+      
+      const attendee = await storage.getAttendee(attendeeId);
+      if (!attendee) {
+        res.status(404).json({ error: "Attendee not found" });
+        return;
+      }
+
+      // Check if ticket already exists
+      const existingTicket = await storage.getTicketByAttendee(attendeeId);
+      if (existingTicket) {
+        res.json(existingTicket);
+        return;
+      }
+
+      // Generate unique ticket code
+      const ticketCode = `DK-${Date.now().toString(36).toUpperCase()}-${randomUUID().slice(0, 6).toUpperCase()}`;
+      
+      // QR data contains ticket code only (not personal data)
+      const qrData = JSON.stringify({ code: ticketCode, v: 1 });
+
+      let campDetails = null;
+      let selectedServices = null;
+      if (reservationId) {
+        const reservation = await storage.getReservation(reservationId);
+        if (reservation) {
+          const camp = await storage.getCamp(reservation.campId);
+          campDetails = camp ? camp.name : null;
+          selectedServices = reservation.selectedServices;
+        }
+      }
+
+      const ticket = await storage.createTicket({
+        ticketCode,
+        attendeeId,
+        reservationId: reservationId || null,
+        attendanceType: attendee.attendanceType,
+        qrData,
+        campDetails,
+        selectedServices,
+        status: "valid",
+      });
+
+      res.status(201).json(ticket);
+    } catch (error) {
+      console.error("Ticket creation error:", error);
+      res.status(500).json({ error: "Failed to create ticket" });
+    }
+  });
+
+  // Get ticket by code (for QR scanning)
+  app.get("/api/tickets/scan/:code", async (req, res) => {
+    try {
+      const ticket = await storage.getTicketByCode(req.params.code);
+      if (!ticket) {
+        res.status(404).json({ error: "Ticket not found" });
+        return;
+      }
+
+      const attendee = await storage.getAttendee(ticket.attendeeId);
+      
+      res.json({
+        ticket,
+        attendee: attendee ? {
+          fullName: attendee.fullName,
+          attendanceType: attendee.attendanceType,
+          country: attendee.country,
+        } : null,
+      });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to scan ticket" });
+    }
+  });
+
+  // Get ticket for attendee
+  app.get("/api/tickets/attendee/:attendeeId", async (req, res) => {
+    try {
+      const ticket = await storage.getTicketByAttendee(req.params.attendeeId);
+      if (!ticket) {
+        res.status(404).json({ error: "Ticket not found" });
+        return;
+      }
+      res.json(ticket);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch ticket" });
+    }
+  });
+
+  // Mark ticket as used (for access control)
+  app.post("/api/tickets/:id/scan", async (req, res) => {
+    if (!isAdminRequest(req)) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+    try {
+      const ticket = await storage.getTicket(req.params.id);
+      if (!ticket) {
+        res.status(404).json({ error: "Ticket not found" });
+        return;
+      }
+
+      if (ticket.status !== "valid") {
+        res.status(400).json({ error: `Ticket is ${ticket.status}` });
+        return;
+      }
+
+      const updated = await storage.updateTicket(req.params.id, {
+        status: "used",
+        scannedAt: new Date(),
+      });
+
+      res.json(updated);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to scan ticket" });
     }
   });
 

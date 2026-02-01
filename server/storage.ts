@@ -1,12 +1,12 @@
 import { 
   users, attendees, camps, campServices, reservations, payments,
-  companies, pastEvents, awardees, mediaAssets, announcements, auditLogs,
+  companies, pastEvents, awardees, mediaAssets, announcements, auditLogs, tickets,
   type User, type InsertUser, type Attendee, type InsertAttendee,
   type Camp, type InsertCamp, type CampService, type InsertCampService,
   type Reservation, type InsertReservation, type Payment, type InsertPayment,
   type Company, type InsertCompany, type PastEvent, type InsertPastEvent,
   type Awardee, type InsertAwardee, type MediaAsset, type InsertMediaAsset,
-  type Announcement, type InsertAnnouncement
+  type Announcement, type InsertAnnouncement, type Ticket, type InsertTicket
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc } from "drizzle-orm";
@@ -69,6 +69,14 @@ export interface IStorage {
   getAnnouncements(): Promise<Announcement[]>;
   getPublishedAnnouncements(): Promise<Announcement[]>;
   createAnnouncement(announcement: InsertAnnouncement): Promise<Announcement>;
+
+  // Tickets
+  getTickets(): Promise<Ticket[]>;
+  getTicket(id: string): Promise<Ticket | undefined>;
+  getTicketByCode(ticketCode: string): Promise<Ticket | undefined>;
+  getTicketByAttendee(attendeeId: string): Promise<Ticket | undefined>;
+  createTicket(ticket: InsertTicket): Promise<Ticket>;
+  updateTicket(id: string, data: Partial<Ticket>): Promise<Ticket | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -249,6 +257,36 @@ export class DatabaseStorage implements IStorage {
   async createAnnouncement(announcement: InsertAnnouncement): Promise<Announcement> {
     const [created] = await db.insert(announcements).values(announcement).returning();
     return created;
+  }
+
+  // Tickets
+  async getTickets(): Promise<Ticket[]> {
+    return db.select().from(tickets).orderBy(desc(tickets.createdAt));
+  }
+
+  async getTicket(id: string): Promise<Ticket | undefined> {
+    const [ticket] = await db.select().from(tickets).where(eq(tickets.id, id));
+    return ticket;
+  }
+
+  async getTicketByCode(ticketCode: string): Promise<Ticket | undefined> {
+    const [ticket] = await db.select().from(tickets).where(eq(tickets.ticketCode, ticketCode));
+    return ticket;
+  }
+
+  async getTicketByAttendee(attendeeId: string): Promise<Ticket | undefined> {
+    const [ticket] = await db.select().from(tickets).where(eq(tickets.attendeeId, attendeeId));
+    return ticket;
+  }
+
+  async createTicket(ticket: InsertTicket): Promise<Ticket> {
+    const [created] = await db.insert(tickets).values(ticket).returning();
+    return created;
+  }
+
+  async updateTicket(id: string, data: Partial<Ticket>): Promise<Ticket | undefined> {
+    const [updated] = await db.update(tickets).set(data).where(eq(tickets.id, id)).returning();
+    return updated;
   }
 }
 
