@@ -1,18 +1,184 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, integer, boolean, timestamp, decimal, pgEnum } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
+
+export const userRoleEnum = pgEnum("user_role", ["public", "attendee", "exhibitor", "sponsor", "admin"]);
+export const attendanceTypeEnum = pgEnum("attendance_type", ["standard", "vip", "delegation"]);
+export const depositStatusEnum = pgEnum("deposit_status", ["pending", "paid", "expired", "refunded"]);
+export const companyRoleEnum = pgEnum("company_role", ["exhibitor", "sponsor", "both"]);
+export const exhibitionCategoryEnum = pgEnum("exhibition_category", ["art", "fashion", "food", "cultural_crafts", "services"]);
+export const applicationStatusEnum = pgEnum("application_status", ["pending", "approved", "rejected"]);
 
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
+  email: text("email").notNull().unique(),
+  fullName: text("full_name").notNull(),
+  role: userRoleEnum("role").default("public").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-export const insertUserSchema = createInsertSchema(users).pick({
-  username: true,
-  password: true,
+export const attendees = pgTable("attendees", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id),
+  fullName: text("full_name").notNull(),
+  email: text("email").notNull(),
+  phone: text("phone"),
+  attendanceType: attendanceTypeEnum("attendance_type").default("standard").notNull(),
+  country: text("country").notNull(),
+  city: text("city").notNull(),
+  arrivalDate: timestamp("arrival_date").notNull(),
+  departureDate: timestamp("departure_date").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export const camps = pgTable("camps", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  description: text("description"),
+  capacity: integer("capacity").notNull(),
+  pricePerNight: decimal("price_per_night", { precision: 10, scale: 2 }).notNull(),
+  amenities: text("amenities").array(),
+  imageUrl: text("image_url"),
+  isActive: boolean("is_active").default(true).notNull(),
+});
+
+export const campServices = pgTable("camp_services", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  description: text("description"),
+  price: decimal("price", { precision: 10, scale: 2 }).notNull(),
+  capacity: integer("capacity"),
+  isActive: boolean("is_active").default(true).notNull(),
+});
+
+export const reservations = pgTable("reservations", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  attendeeId: varchar("attendee_id").references(() => attendees.id).notNull(),
+  campId: varchar("camp_id").references(() => camps.id).notNull(),
+  checkIn: timestamp("check_in").notNull(),
+  checkOut: timestamp("check_out").notNull(),
+  totalAmount: decimal("total_amount", { precision: 10, scale: 2 }).notNull(),
+  depositAmount: decimal("deposit_amount", { precision: 10, scale: 2 }).notNull(),
+  depositStatus: depositStatusEnum("deposit_status").default("pending").notNull(),
+  selectedServices: text("selected_services").array(),
+  expiresAt: timestamp("expires_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const payments = pgTable("payments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  reservationId: varchar("reservation_id").references(() => reservations.id).notNull(),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  paymentMethod: text("payment_method"),
+  transactionId: text("transaction_id"),
+  status: text("status").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const companies = pgTable("companies", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  description: text("description"),
+  contactEmail: text("contact_email").notNull(),
+  contactPhone: text("contact_phone"),
+  website: text("website"),
+  logoUrl: text("logo_url"),
+  role: companyRoleEnum("role").notNull(),
+  exhibitionCategory: exhibitionCategoryEnum("exhibition_category"),
+  sponsorshipTier: text("sponsorship_tier"),
+  applicationStatus: applicationStatusEnum("application_status").default("pending").notNull(),
+  isPrimarySponsor: boolean("is_primary_sponsor").default(false).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const pastEvents = pgTable("past_events", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  year: integer("year").notNull(),
+  edition: text("edition"),
+  title: text("title").notNull(),
+  summary: text("summary"),
+  eventDate: timestamp("event_date"),
+  location: text("location"),
+  imageUrl: text("image_url"),
+  videoUrl: text("video_url"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const awardees = pgTable("awardees", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  pastEventId: varchar("past_event_id").references(() => pastEvents.id).notNull(),
+  name: text("name").notNull(),
+  title: text("title"),
+  awardName: text("award_name").notNull(),
+  awardDescription: text("award_description"),
+  imageUrl: text("image_url"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const mediaAssets = pgTable("media_assets", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  pastEventId: varchar("past_event_id").references(() => pastEvents.id),
+  type: text("type").notNull(),
+  url: text("url").notNull(),
+  caption: text("caption"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const announcements = pgTable("announcements", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  title: text("title").notNull(),
+  content: text("content").notNull(),
+  isPublished: boolean("is_published").default(false).notNull(),
+  publishedAt: timestamp("published_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const auditLogs = pgTable("audit_logs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id"),
+  action: text("action").notNull(),
+  entityType: text("entity_type").notNull(),
+  entityId: varchar("entity_id"),
+  details: text("details"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Insert schemas
+export const insertUserSchema = createInsertSchema(users).omit({ id: true, createdAt: true });
+export const insertAttendeeSchema = createInsertSchema(attendees).omit({ id: true, createdAt: true });
+export const insertCampSchema = createInsertSchema(camps).omit({ id: true });
+export const insertCampServiceSchema = createInsertSchema(campServices).omit({ id: true });
+export const insertReservationSchema = createInsertSchema(reservations).omit({ id: true, createdAt: true });
+export const insertPaymentSchema = createInsertSchema(payments).omit({ id: true, createdAt: true });
+export const insertCompanySchema = createInsertSchema(companies).omit({ id: true, createdAt: true });
+export const insertPastEventSchema = createInsertSchema(pastEvents).omit({ id: true, createdAt: true });
+export const insertAwardeeSchema = createInsertSchema(awardees).omit({ id: true, createdAt: true });
+export const insertMediaAssetSchema = createInsertSchema(mediaAssets).omit({ id: true, createdAt: true });
+export const insertAnnouncementSchema = createInsertSchema(announcements).omit({ id: true, createdAt: true });
+
+// Types
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
+export type InsertAttendee = z.infer<typeof insertAttendeeSchema>;
+export type Attendee = typeof attendees.$inferSelect;
+export type InsertCamp = z.infer<typeof insertCampSchema>;
+export type Camp = typeof camps.$inferSelect;
+export type InsertCampService = z.infer<typeof insertCampServiceSchema>;
+export type CampService = typeof campServices.$inferSelect;
+export type InsertReservation = z.infer<typeof insertReservationSchema>;
+export type Reservation = typeof reservations.$inferSelect;
+export type InsertPayment = z.infer<typeof insertPaymentSchema>;
+export type Payment = typeof payments.$inferSelect;
+export type InsertCompany = z.infer<typeof insertCompanySchema>;
+export type Company = typeof companies.$inferSelect;
+export type InsertPastEvent = z.infer<typeof insertPastEventSchema>;
+export type PastEvent = typeof pastEvents.$inferSelect;
+export type InsertAwardee = z.infer<typeof insertAwardeeSchema>;
+export type Awardee = typeof awardees.$inferSelect;
+export type InsertMediaAsset = z.infer<typeof insertMediaAssetSchema>;
+export type MediaAsset = typeof mediaAssets.$inferSelect;
+export type InsertAnnouncement = z.infer<typeof insertAnnouncementSchema>;
+export type Announcement = typeof announcements.$inferSelect;
