@@ -6,7 +6,7 @@ import {
   insertAnnouncementSchema
 } from "@shared/schema";
 import { z } from "zod";
-import { initializePayment, checkPaymentStatus, isPaymentComplete } from "./paynow";
+import { initializePayment, checkPaymentStatus, isPaymentComplete, verifyPaynowHash } from "./paynow";
 import { randomUUID } from "crypto";
 
 export async function registerRoutes(
@@ -298,7 +298,14 @@ export async function registerRoutes(
 
   app.post("/api/payments/callback", async (req, res) => {
     try {
-      const { reference, status } = req.body;
+      const callbackData = req.body;
+      const { reference, status } = callbackData;
+      
+      if (!verifyPaynowHash(callbackData)) {
+        console.warn("Invalid Paynow callback hash for reference:", reference);
+        res.status(200).send("OK");
+        return;
+      }
       
       if (reference) {
         const payment = await storage.getPaymentByReference(reference);
@@ -314,6 +321,8 @@ export async function registerRoutes(
               depositStatus: "paid",
             });
           }
+          
+          console.log("Payment confirmed for reference:", reference);
         }
       }
       
@@ -324,8 +333,17 @@ export async function registerRoutes(
     }
   });
 
+  const isAdminRequest = (req: any): boolean => {
+    const adminKey = req.headers["x-admin-key"];
+    return adminKey === process.env.ADMIN_SECRET_KEY || process.env.NODE_ENV === "development";
+  };
+
   // Analytics (Admin)
   app.get("/api/admin/analytics", async (req, res) => {
+    if (!isAdminRequest(req)) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
     try {
       const attendees = await storage.getAttendees();
       const reservations = await storage.getReservations();
@@ -375,6 +393,10 @@ export async function registerRoutes(
 
   // Export attendees (Admin)
   app.get("/api/admin/export/attendees", async (req, res) => {
+    if (!isAdminRequest(req)) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
     try {
       const attendees = await storage.getAttendees();
       

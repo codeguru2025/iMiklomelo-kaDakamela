@@ -83,3 +83,37 @@ The schema (`shared/schema.ts`) includes:
 - Playfair Display (serif headings)
 - Inter (UI text)
 - Loaded via Google Fonts CDN
+
+## Recent Changes (February 2026)
+
+### Payment Integration
+- **Paynow Integration**: Live payment gateway integration with Paynow (Zimbabwe)
+  - Environment variables: `PAYNOW_INTEGRATION_ID`, `PAYNOW_INTEGRATION_KEY`
+  - Hash verification for callback security
+  - Support for mobile money and card payments
+- **Pricing**: All prices in USD ($25/day or $60 full camp duration)
+- **30% deposit** required within 48 hours to secure reservations
+
+### Enhanced Registration
+New demographic fields collected from all attendees:
+- Gender (male, female, other, prefer not to say)
+- Age range (under 18, 18-24, 25-34, 35-44, 45-54, 55-64, 65+)
+- Profession/industry (optional)
+- First-time attendee flag
+- Needs accommodation flag
+- Marketing consent
+
+### Accommodation Features
+- **Camp Centre (Isibaya SikaDakamela)**: Thatched house with bar, pool tables, social lounge, charging station
+- **Camping Plan Image**: Visual layout of the Premium Cultural Camping Sanctuary
+- **Camp Services**: Breakfast, lunch, supper, bathing water, massage spa, ice bath, WiFi, power bank rental
+
+### Admin Dashboard
+- **Analytics**: Demographics, revenue tracking, camp occupancy, attendance types
+- **CSV Export**: Download attendee data for offline analysis
+- **Authentication**: Protected with `ADMIN_SECRET_KEY` header (development mode bypasses)
+
+### PWA Configuration
+- **manifest.json**: Mobile app installation support
+- **Service worker**: Offline caching for core pages
+- **Apple-specific meta tags**: iOS home screen support

@@ -51,8 +51,13 @@ export async function initializePayment(request: PaynowInitRequest): Promise<Pay
     return { status: "Error", error: "Payment system not configured" };
   }
 
-  const returnUrl = request.returnUrl || process.env.APP_URL || "https://localhost:5000";
-  const resultUrl = request.resultUrl || `${returnUrl}/api/payments/callback`;
+  const baseUrl = request.returnUrl 
+    || process.env.REPLIT_DEPLOYMENT_URL 
+    || (process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : null)
+    || process.env.APP_URL 
+    || "https://localhost:5000";
+  const returnUrl = baseUrl;
+  const resultUrl = request.resultUrl || `${baseUrl}/api/payments/callback`;
 
   const values = [
     PAYNOW_INTEGRATION_ID,
@@ -143,4 +148,28 @@ export function isPaymentPending(status: string): boolean {
 export function isPaymentFailed(status: string): boolean {
   const failedStatuses = ["Cancelled", "Disputed", "Refunded", "Failed"];
   return failedStatuses.includes(status);
+}
+
+export function verifyPaynowHash(data: Record<string, string>): boolean {
+  if (!PAYNOW_INTEGRATION_KEY) {
+    console.error("Cannot verify hash - integration key not configured");
+    return false;
+  }
+  
+  const receivedHash = data.hash;
+  if (!receivedHash) {
+    return false;
+  }
+  
+  const valuesToHash: string[] = [];
+  const orderedKeys = ["reference", "amount", "status", "paynowreference", "pollurl"];
+  
+  for (const key of orderedKeys) {
+    if (data[key] !== undefined) {
+      valuesToHash.push(data[key]);
+    }
+  }
+  
+  const calculatedHash = createHash(valuesToHash, PAYNOW_INTEGRATION_KEY);
+  return calculatedHash === receivedHash;
 }

@@ -4,7 +4,8 @@ const OFFLINE_URL = '/offline.html';
 const STATIC_ASSETS = [
   '/',
   '/manifest.json',
-  '/favicon.png'
+  '/favicon.png',
+  '/offline.html'
 ];
 
 self.addEventListener('install', (event) => {
