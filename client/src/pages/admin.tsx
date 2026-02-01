@@ -9,15 +9,57 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { Progress } from "@/components/ui/progress";
+import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { 
   Users, Tent, Building2, Award, Bell, Settings, Shield, 
-  CheckCircle, XCircle, Clock, Plus, RefreshCw, Eye
+  CheckCircle, XCircle, Clock, Plus, RefreshCw, Eye,
+  BarChart3, Download, DollarSign, TrendingUp, UserCheck,
+  Globe, MapPin, Calendar
 } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { Attendee, Reservation, Company, PastEvent, Announcement } from "@shared/schema";
+import type { Attendee, Reservation, Company, Announcement } from "@shared/schema";
+
+interface Analytics {
+  totalAttendees: number;
+  totalReservations: number;
+  paidReservations: number;
+  pendingReservations: number;
+  totalRevenue: number;
+  demographics: {
+    byCountry: Record<string, number>;
+    byAttendanceType: Record<string, number>;
+    byGender: Record<string, number>;
+    byAgeRange: Record<string, number>;
+    firstTimeAttendees: number;
+    returningAttendees: number;
+  };
+  campOccupancy: Array<{
+    name: string;
+    capacity: number;
+    booked: number;
+  }>;
+}
+
+const genderLabels: Record<string, string> = {
+  male: "Male",
+  female: "Female",
+  other: "Other",
+  prefer_not_to_say: "Prefer not to say",
+};
+
+const ageRangeLabels: Record<string, string> = {
+  under_18: "Under 18",
+  "18_24": "18-24",
+  "25_34": "25-34",
+  "35_44": "35-44",
+  "45_54": "45-54",
+  "55_64": "55-64",
+  "65_plus": "65+",
+};
 
 export default function Admin() {
   const { toast } = useToast();
@@ -37,6 +79,10 @@ export default function Admin() {
 
   const { data: announcements, isLoading: announcementsLoading } = useQuery<Announcement[]>({
     queryKey: ["/api/announcements"],
+  });
+
+  const { data: analytics, isLoading: analyticsLoading } = useQuery<Analytics>({
+    queryKey: ["/api/admin/analytics"],
   });
 
   const updateCompanyStatus = useMutation({
@@ -79,20 +125,25 @@ export default function Admin() {
     },
   });
 
+  const handleExportCSV = () => {
+    window.open("/api/admin/export/attendees", "_blank");
+    toast({ title: "Download started", description: "Your CSV file is being generated." });
+  };
+
   const pendingCompanies = companies?.filter(c => c.applicationStatus === "pending") || [];
   const pendingReservations = reservations?.filter(r => r.depositStatus === "pending") || [];
 
   const stats = [
-    { label: "Total Attendees", value: attendees?.length || 0, icon: Users },
-    { label: "Active Reservations", value: reservations?.filter(r => r.depositStatus === "paid").length || 0, icon: Tent },
-    { label: "Pending Applications", value: pendingCompanies.length, icon: Building2 },
-    { label: "Pending Deposits", value: pendingReservations.length, icon: Clock },
+    { label: "Total Attendees", value: analytics?.totalAttendees || attendees?.length || 0, icon: Users, color: "text-blue-500" },
+    { label: "Total Revenue", value: `$${(analytics?.totalRevenue || 0).toFixed(0)}`, icon: DollarSign, color: "text-green-500" },
+    { label: "Paid Bookings", value: analytics?.paidReservations || reservations?.filter(r => r.depositStatus === "paid").length || 0, icon: CheckCircle, color: "text-emerald-500" },
+    { label: "Pending Deposits", value: analytics?.pendingReservations || pendingReservations.length, icon: Clock, color: "text-orange-500" },
   ];
 
   return (
     <div className="min-h-screen py-8 bg-background">
       <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
           <div>
             <h1 className="font-serif text-3xl font-bold flex items-center gap-3">
               <Shield className="w-8 h-8 text-primary" />
@@ -100,23 +151,29 @@ export default function Admin() {
             </h1>
             <p className="text-muted-foreground mt-1">Manage event operations and applications</p>
           </div>
-          <Button variant="outline" size="sm" onClick={() => {
-            queryClient.invalidateQueries();
-            toast({ title: "Data refreshed" });
-          }} data-testid="button-refresh">
-            <RefreshCw className="w-4 h-4 mr-2" />
-            Refresh
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={handleExportCSV} data-testid="button-export">
+              <Download className="w-4 h-4 mr-2" />
+              Export CSV
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => {
+              queryClient.invalidateQueries();
+              toast({ title: "Data refreshed" });
+            }} data-testid="button-refresh">
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Refresh
+            </Button>
+          </div>
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           {stats.map((stat, index) => (
             <Card key={index} data-testid={`stat-card-${index}`}>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 gap-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
                   {stat.label}
                 </CardTitle>
-                <stat.icon className="h-4 w-4 text-muted-foreground" />
+                <stat.icon className={`h-4 w-4 ${stat.color}`} />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{stat.value}</div>
@@ -125,15 +182,19 @@ export default function Admin() {
           ))}
         </div>
 
-        <Tabs defaultValue="attendees" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5 max-w-2xl">
+        <Tabs defaultValue="analytics" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-6 max-w-3xl">
+            <TabsTrigger value="analytics" data-testid="tab-analytics">
+              <BarChart3 className="w-4 h-4 mr-2" />
+              Analytics
+            </TabsTrigger>
             <TabsTrigger value="attendees" data-testid="tab-attendees">
               <Users className="w-4 h-4 mr-2" />
               Attendees
             </TabsTrigger>
             <TabsTrigger value="reservations" data-testid="tab-reservations">
               <Tent className="w-4 h-4 mr-2" />
-              Reservations
+              Bookings
             </TabsTrigger>
             <TabsTrigger value="companies" data-testid="tab-companies">
               <Building2 className="w-4 h-4 mr-2" />
@@ -149,11 +210,190 @@ export default function Admin() {
             </TabsTrigger>
           </TabsList>
 
+          <TabsContent value="analytics">
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <UserCheck className="w-5 h-5 text-primary" />
+                    Attendee Demographics
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {analyticsLoading ? (
+                    <Skeleton className="h-32 w-full" />
+                  ) : analytics?.demographics ? (
+                    <>
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-sm">
+                          <span>First-time Attendees</span>
+                          <span className="font-semibold">{analytics.demographics.firstTimeAttendees}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span>Returning Attendees</span>
+                          <span className="font-semibold">{analytics.demographics.returningAttendees}</span>
+                        </div>
+                      </div>
+                      
+                      <Separator />
+                      
+                      <div>
+                        <h4 className="text-sm font-medium mb-2">By Gender</h4>
+                        <div className="space-y-1">
+                          {Object.entries(analytics.demographics.byGender || {}).map(([gender, count]) => (
+                            <div key={gender} className="flex justify-between text-sm">
+                              <span className="text-muted-foreground">{genderLabels[gender] || gender}</span>
+                              <span>{count}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <p className="text-muted-foreground text-sm">No demographic data yet</p>
+                  )}
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Globe className="w-5 h-5 text-primary" />
+                    By Location
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {analyticsLoading ? (
+                    <Skeleton className="h-32 w-full" />
+                  ) : analytics?.demographics?.byCountry ? (
+                    <div className="space-y-2">
+                      {Object.entries(analytics.demographics.byCountry)
+                        .sort((a, b) => b[1] - a[1])
+                        .slice(0, 8)
+                        .map(([country, count]) => (
+                          <div key={country} className="flex items-center justify-between text-sm">
+                            <span className="flex items-center gap-2">
+                              <MapPin className="w-3 h-3 text-muted-foreground" />
+                              {country}
+                            </span>
+                            <Badge variant="secondary">{count}</Badge>
+                          </div>
+                        ))}
+                    </div>
+                  ) : (
+                    <p className="text-muted-foreground text-sm">No location data yet</p>
+                  )}
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Calendar className="w-5 h-5 text-primary" />
+                    Age Distribution
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {analyticsLoading ? (
+                    <Skeleton className="h-32 w-full" />
+                  ) : analytics?.demographics?.byAgeRange ? (
+                    <div className="space-y-2">
+                      {Object.entries(analytics.demographics.byAgeRange)
+                        .sort((a, b) => {
+                          const order = ["under_18", "18_24", "25_34", "35_44", "45_54", "55_64", "65_plus"];
+                          return order.indexOf(a[0]) - order.indexOf(b[0]);
+                        })
+                        .map(([age, count]) => {
+                          const total = Object.values(analytics.demographics.byAgeRange).reduce((a, b) => a + b, 0);
+                          const percentage = total > 0 ? (count / total) * 100 : 0;
+                          return (
+                            <div key={age} className="space-y-1">
+                              <div className="flex justify-between text-sm">
+                                <span>{ageRangeLabels[age] || age}</span>
+                                <span>{count}</span>
+                              </div>
+                              <Progress value={percentage} className="h-2" />
+                            </div>
+                          );
+                        })}
+                    </div>
+                  ) : (
+                    <p className="text-muted-foreground text-sm">No age data yet</p>
+                  )}
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <TrendingUp className="w-5 h-5 text-primary" />
+                    Attendance Types
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {analyticsLoading ? (
+                    <Skeleton className="h-32 w-full" />
+                  ) : analytics?.demographics?.byAttendanceType ? (
+                    <div className="space-y-3">
+                      {Object.entries(analytics.demographics.byAttendanceType).map(([type, count]) => (
+                        <div key={type} className="flex items-center justify-between">
+                          <Badge variant="outline" className="capitalize">{type}</Badge>
+                          <span className="font-semibold">{count}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-muted-foreground text-sm">No attendance data yet</p>
+                  )}
+                </CardContent>
+              </Card>
+
+              <Card className="md:col-span-2">
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Tent className="w-5 h-5 text-primary" />
+                    Camp Occupancy
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {analyticsLoading ? (
+                    <Skeleton className="h-32 w-full" />
+                  ) : analytics?.campOccupancy && analytics.campOccupancy.length > 0 ? (
+                    <div className="space-y-4">
+                      {analytics.campOccupancy.map((camp) => {
+                        const percentage = camp.capacity > 0 ? (camp.booked / camp.capacity) * 100 : 0;
+                        return (
+                          <div key={camp.name} className="space-y-2">
+                            <div className="flex justify-between text-sm">
+                              <span className="font-medium">{camp.name}</span>
+                              <span className="text-muted-foreground">
+                                {camp.booked} / {camp.capacity} booked
+                              </span>
+                            </div>
+                            <Progress value={percentage} className="h-3" />
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p className="text-muted-foreground text-sm">No camp data available</p>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
           <TabsContent value="attendees">
             <Card>
-              <CardHeader>
-                <CardTitle>Registered Attendees</CardTitle>
-                <CardDescription>View and manage event attendees</CardDescription>
+              <CardHeader className="flex flex-row items-center justify-between gap-4">
+                <div>
+                  <CardTitle>Registered Attendees</CardTitle>
+                  <CardDescription>View and manage event attendees</CardDescription>
+                </div>
+                <Button variant="outline" size="sm" onClick={handleExportCSV}>
+                  <Download className="w-4 h-4 mr-2" />
+                  Export
+                </Button>
               </CardHeader>
               <CardContent>
                 {attendeesLoading ? (
@@ -161,30 +401,54 @@ export default function Admin() {
                     {[1, 2, 3].map(i => <Skeleton key={i} className="h-12 w-full" />)}
                   </div>
                 ) : attendees && attendees.length > 0 ? (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Name</TableHead>
-                        <TableHead>Email</TableHead>
-                        <TableHead>Type</TableHead>
-                        <TableHead>Location</TableHead>
-                        <TableHead>Arrival</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {attendees.map(attendee => (
-                        <TableRow key={attendee.id} data-testid={`row-attendee-${attendee.id}`}>
-                          <TableCell className="font-medium">{attendee.fullName}</TableCell>
-                          <TableCell>{attendee.email}</TableCell>
-                          <TableCell>
-                            <Badge variant="outline" className="capitalize">{attendee.attendanceType}</Badge>
-                          </TableCell>
-                          <TableCell>{attendee.city}, {attendee.country}</TableCell>
-                          <TableCell>{new Date(attendee.arrivalDate).toLocaleDateString()}</TableCell>
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Name</TableHead>
+                          <TableHead>Email</TableHead>
+                          <TableHead>Gender</TableHead>
+                          <TableHead>Age</TableHead>
+                          <TableHead>Type</TableHead>
+                          <TableHead>Location</TableHead>
+                          <TableHead>First Time</TableHead>
+                          <TableHead>Camping</TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                      </TableHeader>
+                      <TableBody>
+                        {attendees.map(attendee => (
+                          <TableRow key={attendee.id} data-testid={`row-attendee-${attendee.id}`}>
+                            <TableCell className="font-medium">{attendee.fullName}</TableCell>
+                            <TableCell className="text-sm">{attendee.email}</TableCell>
+                            <TableCell>
+                              <span className="text-sm">{attendee.gender ? genderLabels[attendee.gender] : "-"}</span>
+                            </TableCell>
+                            <TableCell>
+                              <span className="text-sm">{attendee.ageRange ? ageRangeLabels[attendee.ageRange] : "-"}</span>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className="capitalize">{attendee.attendanceType}</Badge>
+                            </TableCell>
+                            <TableCell className="text-sm">{attendee.city}, {attendee.country}</TableCell>
+                            <TableCell>
+                              {attendee.isFirstTime ? (
+                                <Badge variant="secondary">New</Badge>
+                              ) : (
+                                <span className="text-muted-foreground text-sm">Returning</span>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              {attendee.needsAccommodation ? (
+                                <Badge>Yes</Badge>
+                              ) : (
+                                <span className="text-muted-foreground text-sm">No</span>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
                 ) : (
                   <div className="text-center py-8 text-muted-foreground">
                     No attendees registered yet.
@@ -224,8 +488,8 @@ export default function Admin() {
                           <TableCell className="font-medium">{reservation.attendeeId}</TableCell>
                           <TableCell>{reservation.campId}</TableCell>
                           <TableCell>{new Date(reservation.checkIn).toLocaleDateString()}</TableCell>
-                          <TableCell>R{parseFloat(reservation.totalAmount).toFixed(2)}</TableCell>
-                          <TableCell>R{parseFloat(reservation.depositAmount).toFixed(2)}</TableCell>
+                          <TableCell>${parseFloat(reservation.totalAmount).toFixed(2)}</TableCell>
+                          <TableCell>${parseFloat(reservation.depositAmount).toFixed(2)}</TableCell>
                           <TableCell>
                             <Badge 
                               variant={reservation.depositStatus === "paid" ? "default" : reservation.depositStatus === "pending" ? "secondary" : "destructive"}
@@ -352,7 +616,7 @@ export default function Admin() {
 
           <TabsContent value="announcements">
             <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
+              <CardHeader className="flex flex-row items-center justify-between gap-4">
                 <div>
                   <CardTitle>Announcements</CardTitle>
                   <CardDescription>Create and manage public announcements</CardDescription>
@@ -413,7 +677,7 @@ export default function Admin() {
                     {announcements.map(announcement => (
                       <Card key={announcement.id} data-testid={`card-announcement-${announcement.id}`}>
                         <CardHeader className="pb-2">
-                          <div className="flex items-center justify-between">
+                          <div className="flex items-center justify-between gap-4">
                             <CardTitle className="text-lg">{announcement.title}</CardTitle>
                             <Badge variant={announcement.isPublished ? "default" : "secondary"}>
                               {announcement.isPublished ? "Published" : "Draft"}
@@ -442,12 +706,41 @@ export default function Admin() {
             <Card>
               <CardHeader>
                 <CardTitle>Event Settings</CardTitle>
-                <CardDescription>Configure event parameters and capacity</CardDescription>
+                <CardDescription>Configure event parameters and pricing</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="text-center py-8 text-muted-foreground">
-                  Settings panel coming soon. For now, camp and service configurations 
-                  are managed through the database.
+                <div className="space-y-6">
+                  <div className="grid sm:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <Label>Deposit Percentage</Label>
+                      <Input value="30%" disabled />
+                      <p className="text-xs text-muted-foreground">30% deposit required to secure bookings</p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Payment Window</Label>
+                      <Input value="48 hours" disabled />
+                      <p className="text-xs text-muted-foreground">Time allowed to complete payment</p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Currency</Label>
+                      <Input value="USD ($)" disabled />
+                      <p className="text-xs text-muted-foreground">All prices in US Dollars</p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Payment Gateway</Label>
+                      <Input value="Paynow (Live)" disabled />
+                      <p className="text-xs text-muted-foreground">Mobile money and card payments</p>
+                    </div>
+                  </div>
+                  
+                  <Separator />
+                  
+                  <div className="text-center text-muted-foreground">
+                    <p className="text-sm">
+                      Camp types, services, and pricing are configured in the database. 
+                      Contact the development team for changes.
+                    </p>
+                  </div>
                 </div>
               </CardContent>
             </Card>
