@@ -1,41 +1,44 @@
 import { db } from "./db";
 import { camps, campServices, companies, pastEvents, awardees, announcements } from "@shared/schema";
-import { sql } from "drizzle-orm";
 
 export async function seedDatabase() {
   console.log("Seeding database...");
 
-  // Check if data already exists
   const existingCamps = await db.select().from(camps).limit(1);
   if (existingCamps.length > 0) {
     console.log("Database already seeded, skipping...");
     return;
   }
 
-  // Seed Camps
   const campData = [
     {
-      name: "Standard Camp",
-      description: "Basic camping with shared facilities. Bring your own tent or rent one.",
+      name: "Standard Camping",
+      description: "Experience authentic African camping in the Premium Cultural Camping Sanctuary. Located in the Inkundla Yomlilo (Sleeping Circle) with access to shared facilities and the vibrant social areas.",
       capacity: 200,
-      pricePerNight: "150.00",
-      amenities: ["Shared ablutions", "Communal fire pit", "Security patrol"],
+      pricePerDay: "25.00",
+      priceFullCamp: "60.00",
+      currency: "USD",
+      amenities: ["Ground level lights", "Security patrol", "Access to Isibaya SikaDakamela (Camp Centre)", "Communal fire pit", "Water tap access"],
       isActive: true,
     },
     {
-      name: "Premium Camp",
-      description: "Enhanced camping experience with better facilities and closer to event venues.",
+      name: "Premium Camping",
+      description: "Enhanced camping in the Outer Court area with better facilities, power access, and closer proximity to the Isigcawu Sabantu (Public & Social Area).",
       capacity: 100,
-      pricePerNight: "350.00",
-      amenities: ["Private ablutions", "Power points", "Shaded areas", "Security patrol"],
+      pricePerDay: "35.00",
+      priceFullCamp: "85.00",
+      currency: "USD",
+      amenities: ["Connected power points", "Ground level lights", "Shaded areas", "Pool tables access", "Security patrol", "Camp Centre access"],
       isActive: true,
     },
     {
-      name: "VIP Camp",
-      description: "Luxury camping with premium amenities and exclusive access.",
+      name: "VIP Camping",
+      description: "Luxury camping experience with premium amenities, private power, and exclusive access to all facilities including the Camp Centre bar and social lounge.",
       capacity: 50,
-      pricePerNight: "750.00",
-      amenities: ["En-suite facilities", "Air conditioning", "Private power", "Concierge service", "Premium bedding included"],
+      pricePerDay: "50.00",
+      priceFullCamp: "120.00",
+      currency: "USD",
+      amenities: ["Private power station", "Premium tent included", "Exclusive Camp Centre access", "Priority bar service", "Concierge service", "All meals included"],
       isActive: true,
     },
   ];
@@ -43,48 +46,77 @@ export async function seedDatabase() {
   await db.insert(camps).values(campData);
   console.log("Camps seeded");
 
-  // Seed Camp Services
   const serviceData = [
     {
-      name: "Tent Rental",
-      description: "2-person weatherproof tent with groundsheet",
-      price: "200.00",
-      capacity: 150,
-      isActive: true,
-    },
-    {
-      name: "Bedding Package",
-      description: "Mattress, sleeping bag, pillow, and blanket",
-      price: "150.00",
-      capacity: 200,
-      isActive: true,
-    },
-    {
-      name: "Meal Package (3 Days)",
-      description: "Traditional meals - breakfast, lunch, and dinner for all 3 days",
-      price: "450.00",
+      name: "Breakfast",
+      description: "Traditional African breakfast with pap, eggs, and grilled meats",
+      price: "8.00",
+      currency: "USD",
       capacity: 500,
+      isDateBound: true,
       isActive: true,
     },
     {
-      name: "Power Access",
-      description: "Dedicated power point for charging devices",
-      price: "100.00",
+      name: "Lunch",
+      description: "Hearty midday meal with braai meats and traditional sides",
+      price: "12.00",
+      currency: "USD",
+      capacity: 500,
+      isDateBound: true,
+      isActive: true,
+    },
+    {
+      name: "Supper",
+      description: "Evening feast with traditional stews, rice, and vegetables",
+      price: "15.00",
+      currency: "USD",
+      capacity: 500,
+      isDateBound: true,
+      isActive: true,
+    },
+    {
+      name: "Bathing Water",
+      description: "Hot water for bathing delivered to your tent area",
+      price: "5.00",
+      currency: "USD",
+      capacity: 200,
+      isDateBound: true,
+      isActive: true,
+    },
+    {
+      name: "Massage Spa",
+      description: "Traditional African massage and relaxation treatment",
+      price: "25.00",
+      currency: "USD",
+      capacity: 50,
+      isDateBound: true,
+      isActive: true,
+    },
+    {
+      name: "Ice Bath",
+      description: "Refreshing ice bath for recovery and wellness",
+      price: "10.00",
+      currency: "USD",
+      capacity: 30,
+      isDateBound: true,
+      isActive: true,
+    },
+    {
+      name: "WiFi Access",
+      description: "High-speed internet access throughout the camp",
+      price: "5.00",
+      currency: "USD",
+      capacity: 300,
+      isDateBound: false,
+      isActive: true,
+    },
+    {
+      name: "Power Bank Rental",
+      description: "Portable power bank for charging your devices",
+      price: "3.00",
+      currency: "USD",
       capacity: 100,
-      isActive: true,
-    },
-    {
-      name: "Security Locker",
-      description: "Secure storage locker for valuables",
-      price: "75.00",
-      capacity: 80,
-      isActive: true,
-    },
-    {
-      name: "Shuttle Service",
-      description: "Airport/bus station pickup and return transport",
-      price: "250.00",
-      capacity: 60,
+      isDateBound: false,
       isActive: true,
     },
   ];
@@ -92,7 +124,6 @@ export async function seedDatabase() {
   await db.insert(campServices).values(serviceData);
   console.log("Camp services seeded");
 
-  // Seed Primary Sponsor (Kingdom Blue)
   const companyData = [
     {
       name: "Kingdom Blue",
@@ -138,8 +169,15 @@ export async function seedDatabase() {
   await db.insert(companies).values(companyData);
   console.log("Companies seeded");
 
-  // Seed Past Events
   const pastEventData = [
+    {
+      year: 2025,
+      edition: "11th Edition",
+      title: "Imiklomelo Ka Dakamela 2025",
+      summary: "The upcoming celebration continues the proud tradition of honoring achievers and preserving cultural heritage in the heart of KwaZulu-Natal.",
+      eventDate: new Date("2025-12-12"),
+      location: "Dakamela Royal Grounds, KwaZulu-Natal",
+    },
     {
       year: 2024,
       edition: "10th Edition",
@@ -169,38 +207,37 @@ export async function seedDatabase() {
   const insertedEvents = await db.insert(pastEvents).values(pastEventData).returning();
   console.log("Past events seeded");
 
-  // Seed Awardees for 2024 event
   const awardeeData = [
     {
-      pastEventId: insertedEvents[0].id,
+      pastEventId: insertedEvents[1].id,
       name: "Dr. Nomvula Mkhize",
       title: "Community Health Pioneer",
       awardName: "Excellence in Community Service",
       awardDescription: "For outstanding dedication to improving healthcare access in rural communities over 25 years.",
     },
     {
-      pastEventId: insertedEvents[0].id,
+      pastEventId: insertedEvents[1].id,
       name: "Sibusiso Ndlovu",
       title: "Cultural Arts Advocate",
       awardName: "Cultural Preservation Award",
       awardDescription: "For lifelong commitment to preserving traditional music and dance forms for future generations.",
     },
     {
-      pastEventId: insertedEvents[0].id,
+      pastEventId: insertedEvents[1].id,
       name: "Thandi Zulu",
       title: "Education Innovator",
       awardName: "Youth Development Award",
       awardDescription: "For establishing scholarship programs that have enabled over 500 students to access higher education.",
     },
     {
-      pastEventId: insertedEvents[1].id,
+      pastEventId: insertedEvents[2].id,
       name: "Chief Mandla Buthelezi",
       title: "Traditional Leadership",
       awardName: "Heritage Leadership Award",
       awardDescription: "For exemplary traditional leadership and community development initiatives.",
     },
     {
-      pastEventId: insertedEvents[1].id,
+      pastEventId: insertedEvents[2].id,
       name: "Zanele Dlamini",
       title: "Agricultural Entrepreneur",
       awardName: "Economic Empowerment Award",
@@ -211,11 +248,16 @@ export async function seedDatabase() {
   await db.insert(awardees).values(awardeeData);
   console.log("Awardees seeded");
 
-  // Seed Announcements
   const announcementData = [
     {
       title: "Early Bird Registration Now Open",
-      content: "Register before October 31st to receive a 15% discount on accommodation packages.",
+      content: "Register before October 31st to receive a 15% discount on accommodation packages. All attendees must register - even if not camping.",
+      isPublished: true,
+      publishedAt: new Date(),
+    },
+    {
+      title: "2026 Event Dates Confirmed",
+      content: "Mark your calendars! The 12th Edition of Imiklomelo Ka Dakamela will take place December 11-13, 2026 at the Dakamela Royal Grounds.",
       isPublished: true,
       publishedAt: new Date(),
     },

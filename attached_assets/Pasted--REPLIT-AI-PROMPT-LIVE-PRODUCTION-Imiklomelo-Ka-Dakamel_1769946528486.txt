@@ -1,0 +1,388 @@
+🔱 REPLIT AI PROMPT (LIVE PRODUCTION)
+Imiklomelo Ka Dakamela – Event, Camping, Payments & Heritage Platform
+PROJECT OVERVIEW
+
+Build a live, production-grade, mobile-first, high-scalability web application for Imiklomelo Ka Dakamela, the official Chief Dakamela Achievers Awards & Cultural Gathering.
+
+This platform must handle hundreds of thousands of attendees, including international guests, under low-bandwidth and rural connectivity conditions, while preserving cultural authority, data security, and operational integrity.
+
+⚠️ This system is LIVE
+
+Paynow integration is already approved
+
+DO NOT use test or sandbox mode
+
+Assume valid Integration ID & Key exist in environment variables
+
+🚫 ABSOLUTE CULTURAL RULES (NON-NEGOTIABLE)
+
+❌ No public nominations
+
+❌ No award categories
+
+❌ No voting
+
+❌ No popularity scoring
+
+All awardees are selected and honored solely by the Chief.
+The platform only documents and displays official outcomes.
+
+👥 USER ROLES
+1. Public (No Login)
+
+View upcoming event details
+
+View camping options & prices
+
+View exhibitors & sponsors
+
+View past events archive
+
+View past awardees with photos & awards
+
+Background video autoplay (muted, optimized)
+
+2. Attendees (MANDATORY REGISTRATION)
+
+⚠️ All attendees MUST register — even non-campers.
+
+Data Collection (CRITICAL BUSINESS REQUIREMENT)
+
+Collect and store:
+
+Full name
+
+Email
+
+Phone number
+
+Gender
+
+Age range
+
+Country
+
+City / Town
+
+Profession / Industry (optional)
+
+Attendance type (Standard / VIP / Delegate)
+
+First-time or returning attendee
+
+This data will be used for:
+
+Future event invitations
+
+Product & service marketing
+
+Demographic analysis
+
+Attendance forecasting
+
+⚠️ Data must be:
+
+Securely stored
+
+GDPR-conscious
+
+Exportable by admin
+
+Never publicly visible
+
+3. Camping & Accommodation Booking
+Pricing (LOCKED)
+
+$25 USD per day
+
+$60 USD for full camp duration
+
+Optional Add-On Services (Selectable per Booking)
+
+Breakfast
+
+Lunch
+
+Supper
+
+Bathing Water
+
+Massage Spa
+
+Ice Ice Bath
+
+WiFi
+
+Charging Station
+
+Each service:
+
+Has limited capacity
+
+Is date-bound
+
+Admin-configurable
+
+Deposit & Payment Logic (CRITICAL)
+
+Booking is NOT valid without deposit
+
+Deposit must be paid via LIVE PAYNOW
+
+Reservation states:
+
+Pending
+
+Paid
+
+Expired
+
+Cancelled
+
+Auto-expire unpaid reservations
+
+Payment confirmation must be idempotent
+
+💳 PAYMENTS – PAYNOW (LIVE)
+Paynow Integration Requirements
+
+Use LIVE Paynow credentials
+
+No sandbox or test mode
+
+Secure server-side payment initiation
+
+Payment verification via Paynow polling / callbacks
+
+Store:
+
+Paynow reference
+
+Amount
+
+Status
+
+Timestamp
+
+Handle mobile money & card payments
+
+Retry-safe & duplicate-safe logic
+
+⚠️ Payment APIs must be rate-limited and logged.
+
+🏕️ CAMP CENTRE (UI FEATURE)
+
+The camp includes a central thatched house featuring:
+
+Bar
+
+Pool tables
+
+Liquor service
+
+Social lounge
+
+This must be:
+
+Visually emphasized
+
+Included in media gallery
+
+Highlighted as the social heart of the camp
+
+🏛️ PAST EVENTS & HERITAGE ARCHIVE (MANDATORY)
+
+Include Past Events Module with:
+
+Multiple editions
+
+2025 edition INCLUDED by default
+
+Each edition contains:
+
+Year
+
+Event summary
+
+Awardees
+
+Awards conferred
+
+Photo gallery
+
+Optional videos
+
+Sponsors of that year
+
+Public = read-only
+Admin = full edit control
+
+🎛️ ADMIN PANEL (CMS-STYLE)
+
+Admins must be able to:
+
+Add/edit/delete:
+
+Events
+
+Camping prices
+
+Services
+
+Images & videos
+
+Past events
+
+Awardees
+
+Approve exhibitors & sponsors
+
+View analytics:
+
+Attendee demographics
+
+Revenue
+
+Occupancy
+
+Export data (CSV)
+
+Full audit trail of changes
+
+⚠️ No nomination or voting tools allowed.
+
+🎥 MEDIA & UX REQUIREMENTS
+
+Background video on landing pages
+
+Autoplay, muted, looped
+
+Lazy-loaded
+
+CDN-optimized
+
+Fallback image for poor networks
+
+⚙️ TECH STACK (LOCKED)
+Frontend
+
+React
+
+Tailwind CSS
+
+Lucide-React icons
+
+wouter
+
+Mobile-first
+
+PWA enabled
+
+Backend
+
+Node.js (Express)
+
+Drizzle ORM
+
+Thin controllers
+
+Strong validation
+
+Database (PostgreSQL)
+
+Tables must include:
+
+users
+
+attendees
+
+demographics
+
+camps
+
+camp_services
+
+reservations
+
+payments
+
+companies
+
+sponsorships
+
+exhibitors
+
+past_events
+
+awardees
+
+awards
+
+media_assets
+
+announcements
+
+audit_logs
+
+🔐 NON-NEGOTIABLE SYSTEM REQUIREMENTS
+Security
+
+Encrypted passwords
+
+Secure cookies
+
+RBAC
+
+OWASP Top 10 compliance
+
+Rate limiting
+
+Audit logs
+
+Scalability
+
+100k+ concurrent users
+
+Stateless backend
+
+Connection pooling
+
+CDN media delivery
+
+Operability
+
+Zero downtime deploys
+
+Graceful degradation
+
+Reservation locking
+
+Idempotent payments
+
+Maintainability
+
+Schema-first
+
+Typed codebase
+
+Modular services
+
+Easy future expansion
+
+🎯 FINAL EXPECTATION
+
+Generate:
+
+Full database schema
+
+Backend APIs
+
+Paynow payment flow
+
+Frontend UI
+
+Admin panel
+
+PWA configuration
+
+This is a LIVE, CULTURAL, HIGH-IMPACT PLATFORM, not a prototype.

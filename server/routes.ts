@@ -6,6 +6,8 @@ import {
   insertAnnouncementSchema
 } from "@shared/schema";
 import { z } from "zod";
+import { initializePayment, checkPaymentStatus, isPaymentComplete } from "./paynow";
+import { randomUUID } from "crypto";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -207,6 +209,204 @@ export async function registerRoutes(
       } else {
         res.status(500).json({ error: "Failed to create announcement" });
       }
+    }
+  });
+
+  // Payments
+  app.post("/api/payments/initiate", async (req, res) => {
+    try {
+      const { reservationId, attendeeId, email, amount, paymentType } = req.body;
+      
+      if (!email || !amount) {
+        res.status(400).json({ error: "Email and amount are required" });
+        return;
+      }
+
+      const reference = `DK-${Date.now()}-${randomUUID().slice(0, 8)}`;
+      
+      const paynowResponse = await initializePayment({
+        reference,
+        email,
+        amount: parseFloat(amount),
+        additionalInfo: `Imiklomelo Ka Dakamela - ${paymentType || "deposit"}`,
+      });
+
+      if (paynowResponse.status === "Ok" && paynowResponse.browserUrl) {
+        const payment = await storage.createPayment({
+          reservationId: reservationId || null,
+          attendeeId: attendeeId || null,
+          amount: amount.toString(),
+          currency: "USD",
+          paynowReference: reference,
+          pollUrl: paynowResponse.pollUrl || null,
+          status: "pending",
+          paymentType: paymentType || "deposit",
+        });
+
+        res.json({
+          success: true,
+          paymentId: payment.id,
+          redirectUrl: paynowResponse.browserUrl,
+          reference,
+        });
+      } else {
+        res.status(400).json({ 
+          success: false, 
+          error: paynowResponse.error || "Payment initialization failed" 
+        });
+      }
+    } catch (error) {
+      console.error("Payment initiation error:", error);
+      res.status(500).json({ error: "Failed to initiate payment" });
+    }
+  });
+
+  app.get("/api/payments/:id/status", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const payment = await storage.getPayment(id);
+      
+      if (!payment) {
+        res.status(404).json({ error: "Payment not found" });
+        return;
+      }
+
+      if (payment.pollUrl && payment.status === "pending") {
+        const status = await checkPaymentStatus(payment.pollUrl);
+        
+        if (isPaymentComplete(status.status)) {
+          await storage.updatePayment(id, { 
+            status: "paid",
+            paidAt: new Date(),
+          });
+          
+          if (payment.reservationId) {
+            await storage.updateReservation(payment.reservationId, {
+              depositStatus: "paid",
+            });
+          }
+        }
+        
+        res.json({ ...payment, paynowStatus: status.status });
+      } else {
+        res.json(payment);
+      }
+    } catch (error) {
+      res.status(500).json({ error: "Failed to check payment status" });
+    }
+  });
+
+  app.post("/api/payments/callback", async (req, res) => {
+    try {
+      const { reference, status } = req.body;
+      
+      if (reference) {
+        const payment = await storage.getPaymentByReference(reference);
+        
+        if (payment && isPaymentComplete(status)) {
+          await storage.updatePayment(payment.id, {
+            status: "paid",
+            paidAt: new Date(),
+          });
+          
+          if (payment.reservationId) {
+            await storage.updateReservation(payment.reservationId, {
+              depositStatus: "paid",
+            });
+          }
+        }
+      }
+      
+      res.status(200).send("OK");
+    } catch (error) {
+      console.error("Payment callback error:", error);
+      res.status(200).send("OK");
+    }
+  });
+
+  // Analytics (Admin)
+  app.get("/api/admin/analytics", async (req, res) => {
+    try {
+      const attendees = await storage.getAttendees();
+      const reservations = await storage.getReservations();
+      const payments = await storage.getPayments();
+      const camps = await storage.getCamps();
+
+      const analytics = {
+        totalAttendees: attendees.length,
+        totalReservations: reservations.length,
+        paidReservations: reservations.filter(r => r.depositStatus === "paid").length,
+        pendingReservations: reservations.filter(r => r.depositStatus === "pending").length,
+        totalRevenue: payments
+          .filter(p => p.status === "paid")
+          .reduce((sum, p) => sum + parseFloat(p.amount), 0),
+        demographics: {
+          byCountry: attendees.reduce((acc, a) => {
+            acc[a.country] = (acc[a.country] || 0) + 1;
+            return acc;
+          }, {} as Record<string, number>),
+          byAttendanceType: attendees.reduce((acc, a) => {
+            acc[a.attendanceType] = (acc[a.attendanceType] || 0) + 1;
+            return acc;
+          }, {} as Record<string, number>),
+          byGender: attendees.reduce((acc, a) => {
+            if (a.gender) acc[a.gender] = (acc[a.gender] || 0) + 1;
+            return acc;
+          }, {} as Record<string, number>),
+          byAgeRange: attendees.reduce((acc, a) => {
+            if (a.ageRange) acc[a.ageRange] = (acc[a.ageRange] || 0) + 1;
+            return acc;
+          }, {} as Record<string, number>),
+          firstTimeAttendees: attendees.filter(a => a.isFirstTime).length,
+          returningAttendees: attendees.filter(a => !a.isFirstTime).length,
+        },
+        campOccupancy: camps.map(c => ({
+          name: c.name,
+          capacity: c.capacity,
+          booked: reservations.filter(r => r.campId === c.id).length,
+        })),
+      };
+
+      res.json(analytics);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch analytics" });
+    }
+  });
+
+  // Export attendees (Admin)
+  app.get("/api/admin/export/attendees", async (req, res) => {
+    try {
+      const attendees = await storage.getAttendees();
+      
+      const csvHeaders = [
+        "Full Name", "Email", "Phone", "Gender", "Age Range", "Profession",
+        "Attendance Type", "Country", "City", "First Time", "Needs Accommodation",
+        "Marketing Consent", "Created At"
+      ].join(",");
+      
+      const csvRows = attendees.map(a => [
+        `"${a.fullName}"`,
+        `"${a.email}"`,
+        `"${a.phone || ""}"`,
+        `"${a.gender || ""}"`,
+        `"${a.ageRange || ""}"`,
+        `"${a.profession || ""}"`,
+        `"${a.attendanceType}"`,
+        `"${a.country}"`,
+        `"${a.city}"`,
+        a.isFirstTime ? "Yes" : "No",
+        a.needsAccommodation ? "Yes" : "No",
+        a.marketingConsent ? "Yes" : "No",
+        `"${a.createdAt.toISOString()}"`,
+      ].join(","));
+      
+      const csv = [csvHeaders, ...csvRows].join("\n");
+      
+      res.setHeader("Content-Type", "text/csv");
+      res.setHeader("Content-Disposition", "attachment; filename=attendees.csv");
+      res.send(csv);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to export attendees" });
     }
   });
 

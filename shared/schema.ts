@@ -9,6 +9,9 @@ export const depositStatusEnum = pgEnum("deposit_status", ["pending", "paid", "e
 export const companyRoleEnum = pgEnum("company_role", ["exhibitor", "sponsor", "both"]);
 export const exhibitionCategoryEnum = pgEnum("exhibition_category", ["art", "fashion", "food", "cultural_crafts", "services"]);
 export const applicationStatusEnum = pgEnum("application_status", ["pending", "approved", "rejected"]);
+export const genderEnum = pgEnum("gender", ["male", "female", "other", "prefer_not_to_say"]);
+export const ageRangeEnum = pgEnum("age_range", ["under_18", "18_24", "25_34", "35_44", "45_54", "55_64", "65_plus"]);
+export const paymentStatusEnum = pgEnum("payment_status", ["pending", "processing", "paid", "failed", "cancelled"]);
 
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -25,12 +28,18 @@ export const attendees = pgTable("attendees", {
   userId: varchar("user_id").references(() => users.id),
   fullName: text("full_name").notNull(),
   email: text("email").notNull(),
-  phone: text("phone"),
+  phone: text("phone").notNull(),
+  gender: genderEnum("gender").notNull(),
+  ageRange: ageRangeEnum("age_range").notNull(),
+  profession: text("profession"),
   attendanceType: attendanceTypeEnum("attendance_type").default("standard").notNull(),
   country: text("country").notNull(),
   city: text("city").notNull(),
-  arrivalDate: timestamp("arrival_date").notNull(),
-  departureDate: timestamp("departure_date").notNull(),
+  isFirstTime: boolean("is_first_time").default(true).notNull(),
+  needsAccommodation: boolean("needs_accommodation").default(false).notNull(),
+  arrivalDate: timestamp("arrival_date"),
+  departureDate: timestamp("departure_date"),
+  marketingConsent: boolean("marketing_consent").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -39,7 +48,9 @@ export const camps = pgTable("camps", {
   name: text("name").notNull(),
   description: text("description"),
   capacity: integer("capacity").notNull(),
-  pricePerNight: decimal("price_per_night", { precision: 10, scale: 2 }).notNull(),
+  pricePerDay: decimal("price_per_day", { precision: 10, scale: 2 }).notNull().default("25.00"),
+  priceFullCamp: decimal("price_full_camp", { precision: 10, scale: 2 }).notNull().default("60.00"),
+  currency: text("currency").notNull().default("USD"),
   amenities: text("amenities").array(),
   imageUrl: text("image_url"),
   isActive: boolean("is_active").default(true).notNull(),
@@ -50,7 +61,9 @@ export const campServices = pgTable("camp_services", {
   name: text("name").notNull(),
   description: text("description"),
   price: decimal("price", { precision: 10, scale: 2 }).notNull(),
+  currency: text("currency").notNull().default("USD"),
   capacity: integer("capacity"),
+  isDateBound: boolean("is_date_bound").default(true).notNull(),
   isActive: boolean("is_active").default(true).notNull(),
 });
 
@@ -70,12 +83,17 @@ export const reservations = pgTable("reservations", {
 
 export const payments = pgTable("payments", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  reservationId: varchar("reservation_id").references(() => reservations.id).notNull(),
+  reservationId: varchar("reservation_id").references(() => reservations.id),
+  attendeeId: varchar("attendee_id").references(() => attendees.id),
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  currency: text("currency").notNull().default("USD"),
   paymentMethod: text("payment_method"),
-  transactionId: text("transaction_id"),
-  status: text("status").notNull(),
+  paynowReference: text("paynow_reference"),
+  pollUrl: text("poll_url"),
+  status: paymentStatusEnum("status").default("pending").notNull(),
+  paymentType: text("payment_type").notNull().default("deposit"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  paidAt: timestamp("paid_at"),
 });
 
 export const companies = pgTable("companies", {
