@@ -1,0 +1,324 @@
+Got it. This is now **enterprise-grade, high-risk, high-traffic**, culturally sensitive software — not a small event app. Below is a **FINAL, BOLT-READY MEGA-PROMPT**, with **locked non-negotiables** around **security, scalability, operability, payments, and historical archive**.
+
+You can paste this **directly into Bolt**.
+
+---
+
+# 🔱 MEGA-PROMPT
+
+## **Imiklomelo Ka Dakamela – Official Event, Camping, Services & Heritage Platform**
+
+---
+
+## 1. System Objective (Locked)
+
+Build a **mission-critical, mobile-first, high-availability web application** for **Imiklomelo Ka Dakamela**, the official **Chief Dakamela Achievers Awards & Cultural Gathering**.
+
+The platform must support **hundreds of thousands of users**, including **international attendees**, under **unstable network conditions**, while **protecting cultural authority and data integrity**.
+
+The system serves as:
+
+* The **official booking & reservation platform**
+* The **services selection & deposit payment system**
+* The **exhibitor & sponsor onboarding system**
+* The **historical archive of past events and awardees**
+* The **cultural record of Imiklomelo Ka Dakamela**
+
+⚠️ **Governance Rule (ABSOLUTE):**
+There are **NO public nominations, NO award categories, NO voting**.
+All awards are **privately decided and conferred by the Chief**.
+The platform **only displays past and official outcomes**.
+
+---
+
+## 2. Core User Roles
+
+### A. Public (No Login)
+
+* View upcoming event details
+* View **past editions of Imiklomelo Ka Dakamela**
+* View:
+
+  * Past awardees
+  * Photos
+  * Awards conferred
+* View confirmed sponsors (Kingdom Blue as **Main Sponsor**)
+* View approved exhibitors
+* View accommodation & camping options (availability only)
+
+---
+
+### B. Attendees (Local & Global)
+
+#### Mandatory Capabilities
+
+* Register attendance
+* Select attendance type:
+
+  * Standard
+  * VIP
+  * Delegation / Cultural Guest
+* Declare:
+
+  * Country & city of origin
+  * Arrival & departure dates
+
+#### Camping & Accommodation Booking (Critical)
+
+* Select **camp type**
+* Select **optional services during booking**, such as:
+
+  * Tent
+  * Bedding
+  * Meals
+  * Power access
+  * Security locker
+  * Transport (if offered)
+* Services are **capacity-based and time-bound**
+
+#### Payments
+
+* User must **pay a DEPOSIT** to secure their camping space
+* No deposit = **NO reservation**
+* Deposit status must be:
+
+  * Pending
+  * Paid
+  * Expired
+  * Refunded (admin only)
+* Reservation auto-expires if deposit not paid within a defined window
+
+---
+
+### C. Exhibitors & Sponsors (Companies)
+
+* Company registration
+* Select role:
+
+  * Exhibitor
+  * Sponsor
+  * Both
+* Exhibition categories:
+
+  * Art
+  * Fashion
+  * Food
+  * Cultural Crafts
+  * Services
+* Sponsorship tiers
+* Upload branding assets
+* Await admin approval
+
+⚠️ **Kingdom Blue**
+
+* Hard-coded as **Primary Sponsor**
+* Always displayed first
+* Cannot be removed via UI
+
+---
+
+### D. Admin (Chief’s Committee)
+
+* Manage:
+
+  * Accommodation inventory
+  * Service capacity
+  * Deposits & confirmations
+* Approve exhibitors & sponsors
+* Publish official announcements
+* Manage **past event archive**
+* Upload:
+
+  * Awardee names
+  * Photos
+  * Awards conferred
+* Export operational reports
+
+⚠️ No admin interfaces for nominations or voting.
+
+---
+
+## 3. Past Events & Cultural Archive (Mandatory)
+
+The system must include a **Historical Archive Module**:
+
+### Each Past Event Includes:
+
+* Year / Edition
+* Event summary
+* List of awardees
+* Awards conferred
+* Image gallery
+* Optional video embeds
+* Sponsors of that year
+
+This module is **read-only for the public** and **admin-managed only**.
+
+This is **non-optional** and must be optimized for content delivery at scale.
+
+---
+
+## 4. Non-Negotiable Non-Functional Requirements
+
+### A. Security (HARD REQUIREMENTS)
+
+* OWASP Top 10 compliance
+* Encrypted password hashing
+* Session-based auth with secure cookies
+* Role-based access control (RBAC)
+* Rate limiting on:
+
+  * Auth
+  * Payments
+  * Reservations
+* Audit logs for:
+
+  * Payments
+  * Admin actions
+  * Inventory changes
+* Strict separation of public vs admin APIs
+
+---
+
+### B. Scalability & Performance (CRITICAL)
+
+* Designed for **hundreds of thousands of concurrent users**
+* Horizontal scalability
+* Stateless backend
+* Database connection pooling
+* Optimized queries (no N+1)
+* Read-heavy workloads supported
+* CDN-ready architecture for:
+
+  * Images
+  * Past event media
+  * Static content
+
+---
+
+### C. Operability & Reliability
+
+* Zero-downtime deployments
+* Graceful degradation on poor networks
+* Idempotent payment & booking APIs
+* Reservation locking to prevent double-booking
+* Automatic expiry of unpaid reservations
+* Admin override with full audit trail
+
+---
+
+### D. Content Delivery & Offline Resilience
+
+* Mobile-first PWA
+* Offline caching for:
+
+  * Event info
+  * Maps
+  * Booking confirmations
+* Extremely lightweight UI
+* Optimized for rural and transit connectivity
+
+---
+
+### E. Maintainability & Extensibility
+
+* Schema-first design
+* Clear domain separation
+* Thin backend services
+* Strict typing everywhere
+* Centralized validation
+* Easy addition of:
+
+  * New services
+  * New event editions
+  * New sponsors
+
+---
+
+## 5. Technical Architecture (LOCKED)
+
+### Frontend
+
+* React
+* Tailwind CSS
+* Lucide-React icons
+* `wouter` for routing
+* Mobile-first layouts
+* react-hook-form + zod validation
+
+### Backend
+
+* Node.js (Express)
+* Drizzle ORM
+* Clear service layer
+* No business logic in controllers
+
+### Database (PostgreSQL – Neon)
+
+Core tables:
+
+* users
+* attendees
+* companies
+* sponsorships
+* exhibitions
+* camps
+* camp_services
+* reservations
+* payments
+* past_events
+* awardees
+* awards
+* media_assets
+* announcements
+* audit_logs
+
+### State & Data
+
+* TanStack Query
+* Optimistic updates
+* Real-time sync for inventory
+
+---
+
+## 6. Design System
+
+* Tone: **Regal, dignified, culturally grounded**
+* Primary colors:
+
+  * Royal Blue `#1e40af`
+  * Amber / Gold `#b45309`
+* Card-based UI
+* Icon-driven navigation
+* Accessibility-first design
+
+---
+
+## 7. Explicit Exclusions (DO NOT BUILD)
+
+❌ Nominations
+❌ Award categories
+❌ Voting
+❌ Popularity metrics
+❌ User-submitted award content
+❌ Public editing of archives
+
+---
+
+## 8. Authority & Integrity Clause
+
+This system **does not democratize tradition**.
+
+It **documents, supports, and preserves** the authority of **Imiklomelo Ka Dakamela**, while operating at **modern, global, enterprise scale**.
+
+---
+
+If you want, next I can:
+
+* Convert this into **Bolt task steps**
+* Generate **Drizzle schema files**
+* Design **payment & reservation state machines**
+* Create **load-testing assumptions**
+* Draft **security threat models**
+
+Just tell me the next move.
