@@ -109,9 +109,29 @@ New demographic fields collected from all attendees:
 - **Camp Services**: Breakfast, lunch, supper, bathing water, massage spa, ice bath, WiFi, power bank rental
 
 ### Admin Dashboard
-- **Analytics**: Demographics, revenue tracking, camp occupancy, attendance types
+- **Analytics**: Demographics, revenue tracking, camp occupancy, attendance types with recharts visualizations
 - **CSV Export**: Download attendee data for offline analysis
 - **Authentication**: Protected with `ADMIN_SECRET_KEY` header (development mode bypasses)
+
+### QR Code Ticketing
+- **Ticket Generation**: Unique ticket codes generated on registration
+- **Ticket Scanning**: Admin-only `/scan-tickets` page for event check-in
+- **Status Tracking**: Tickets can be valid, used, or cancelled
+
+### Payment Status Tracking
+- **Public Lookup**: `/payment-status` page for attendees to check booking status
+- **Email-only Search**: Requires email address for security (no phone lookup)
+- **Limited PII**: Phone numbers masked, generic error messages to prevent enumeration
+
+### Email Notifications
+- **Provider**: Resend integration for transactional emails
+- **Templates**: Registration confirmation, booking confirmation, payment confirmation
+- **Non-blocking**: Emails sent asynchronously to avoid slowing down API responses
+
+### Security Notes
+- All ticket scanning/lookup endpoints require admin authentication
+- Payment status endpoint uses email-only lookup with masked phone numbers
+- Production deployment requires `ADMIN_SECRET_KEY` environment variable
 
 ### PWA Configuration
 - **manifest.json**: Mobile app installation support
