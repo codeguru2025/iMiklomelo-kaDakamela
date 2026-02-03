@@ -55,7 +55,7 @@ export function Footer() {
               </div>
               <div className="flex items-center gap-3 text-sm text-muted-foreground">
                 <Mail className="h-4 w-4 shrink-0" />
-                <span>info@imiklomelo.co.za</span>
+                <a href="mailto:info@imiklomelokadakamela.com" className="hover:text-foreground transition-colors">info@imiklomelokadakamela.com</a>
               </div>
             </div>
           </div>
