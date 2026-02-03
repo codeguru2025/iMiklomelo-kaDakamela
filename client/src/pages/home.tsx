@@ -55,6 +55,9 @@ export default function Home() {
               src={img}
               alt={`Event highlight ${index + 1}`}
               className="w-full h-full object-cover"
+              loading={index === 0 ? "eager" : "lazy"}
+              decoding="async"
+              fetchPriority={index === 0 ? "high" : "low"}
             />
           </div>
         ))}
@@ -273,6 +276,8 @@ export default function Home() {
                 src={eventImage1} 
                 alt="Chief Dakamela conferring award" 
                 className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                loading="lazy"
+                decoding="async"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
               <div className="absolute bottom-4 left-4 text-white">
@@ -284,6 +289,8 @@ export default function Home() {
                 src={eventImage2} 
                 alt="Cultural celebration moment" 
                 className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                loading="lazy"
+                decoding="async"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
               <div className="absolute bottom-4 left-4 text-white">
@@ -295,6 +302,8 @@ export default function Home() {
                 src={eventImage3} 
                 alt="Certificate presentation" 
                 className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                loading="lazy"
+                decoding="async"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
               <div className="absolute bottom-4 left-4 text-white">
@@ -306,6 +315,8 @@ export default function Home() {
                 src={eventImage4} 
                 alt="Traditional gathering" 
                 className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                loading="lazy"
+                decoding="async"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
               <div className="absolute bottom-4 left-4 text-white">

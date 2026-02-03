@@ -63,18 +63,21 @@ export function registerObjectStorageRoutes(app: Express): void {
   });
 
   /**
-   * Serve uploaded objects.
+   * Serve uploaded objects with aggressive CDN caching.
    *
    * GET /objects/:dir/:id
    *
    * This serves files from object storage. For public files, no auth needed.
    * For protected files, add authentication middleware and ACL checks.
+   * Images are cached for 1 year (31536000 seconds) with immutable flag.
    */
   app.get("/objects/:dir/:id", async (req, res) => {
     try {
       const objectPath = `/objects/${req.params.dir}/${req.params.id}`;
       const objectFile = await objectStorageService.getObjectEntityFile(objectPath);
-      await objectStorageService.downloadObject(objectFile, res);
+      // Cache images for 1 year (CDN-friendly) since object IDs are immutable
+      const cacheTtl = 31536000;
+      await objectStorageService.downloadObject(objectFile, res, cacheTtl);
     } catch (error) {
       console.error("Error serving object:", error);
       if (error instanceof ObjectNotFoundError) {

@@ -139,6 +139,8 @@ export default function Event() {
                     src={awardCeremony1} 
                     alt="Award ceremony with Chief Dakamela" 
                     className="w-full h-full object-cover"
+                    loading="lazy"
+                    decoding="async"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
                 </div>
@@ -148,6 +150,8 @@ export default function Event() {
                       src={awardCeremony2} 
                       alt="Certificate presentation" 
                       className="w-full h-full object-cover"
+                      loading="lazy"
+                      decoding="async"
                     />
                   </div>
                   <div className="relative aspect-[4/3] rounded-xl overflow-hidden">
@@ -155,6 +159,8 @@ export default function Event() {
                       src={awardCeremony3} 
                       alt="Cultural celebration" 
                       className="w-full h-full object-cover"
+                      loading="lazy"
+                      decoding="async"
                     />
                   </div>
                 </div>
