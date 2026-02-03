@@ -9,6 +9,7 @@ import { z } from "zod";
 import { initializePayment, checkPaymentStatus, isPaymentComplete, verifyPaynowHash } from "./paynow";
 import { randomUUID } from "crypto";
 import { setupAuth, registerAuthRoutes } from "./replit_integrations/auth";
+import { sendRegistrationEmail, sendBookingConfirmationEmail, sendPaymentConfirmationEmail } from "./email";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -47,9 +48,11 @@ export async function registerRoutes(
       const data = insertAttendeeSchema.parse(req.body);
       const attendee = await storage.createAttendee(data);
       
+      let ticketCode: string | undefined;
+      
       // Auto-generate ticket for non-camping attendees
       if (!data.needsAccommodation) {
-        const ticketCode = `DK-${Date.now().toString(36).toUpperCase()}-${randomUUID().slice(0, 6).toUpperCase()}`;
+        ticketCode = `DK-${Date.now().toString(36).toUpperCase()}-${randomUUID().slice(0, 6).toUpperCase()}`;
         const qrData = JSON.stringify({ code: ticketCode, v: 1 });
         
         await storage.createTicket({
@@ -63,6 +66,15 @@ export async function registerRoutes(
           status: "valid",
         });
       }
+      
+      // Send registration confirmation email (async, don't block response)
+      sendRegistrationEmail({
+        fullName: attendee.fullName,
+        email: attendee.email,
+        attendanceType: attendee.attendanceType,
+        needsAccommodation: attendee.needsAccommodation,
+        ticketCode,
+      }).catch(err => console.error("Email send failed:", err));
       
       res.status(201).json(attendee);
     } catch (error) {
@@ -109,6 +121,23 @@ export async function registerRoutes(
     try {
       const data = insertReservationSchema.parse(req.body);
       const reservation = await storage.createReservation(data);
+      
+      // Send booking confirmation email (async)
+      const attendee = await storage.getAttendee(reservation.attendeeId);
+      const camp = await storage.getCamp(reservation.campId);
+      
+      if (attendee && camp) {
+        sendBookingConfirmationEmail({
+          fullName: attendee.fullName,
+          email: attendee.email,
+          campName: camp.name,
+          checkIn: reservation.checkIn,
+          checkOut: reservation.checkOut,
+          totalAmount: reservation.totalAmount,
+          depositAmount: reservation.depositAmount,
+        }).catch(err => console.error("Booking email send failed:", err));
+      }
+      
       res.status(201).json(reservation);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -353,10 +382,32 @@ export async function registerRoutes(
             paidAt: new Date(),
           });
           
+          let campName: string | undefined;
           if (payment.reservationId) {
             await storage.updateReservation(payment.reservationId, {
               depositStatus: "paid",
             });
+            
+            // Get camp name for email
+            const reservation = await storage.getReservation(payment.reservationId);
+            if (reservation) {
+              const camp = await storage.getCamp(reservation.campId);
+              campName = camp?.name;
+            }
+          }
+          
+          // Send payment confirmation email
+          if (payment.attendeeId) {
+            const attendee = await storage.getAttendee(payment.attendeeId);
+            if (attendee) {
+              sendPaymentConfirmationEmail({
+                fullName: attendee.fullName,
+                email: attendee.email,
+                amount: payment.amount,
+                reference: reference,
+                campName,
+              }).catch(err => console.error("Payment email send failed:", err));
+            }
           }
           
           console.log("Payment confirmed for reference:", reference);
@@ -546,8 +597,12 @@ export async function registerRoutes(
     }
   });
 
-  // Lookup ticket with full details for scanner
+  // Lookup ticket with full details for scanner (admin only)
   app.get("/api/tickets/lookup/:code", async (req, res) => {
+    if (!isAdminRequest(req)) {
+      res.status(401).json({ error: "Unauthorized - admin access required" });
+      return;
+    }
     try {
       const ticket = await storage.getTicketByCode(req.params.code);
       if (!ticket) {
@@ -597,8 +652,12 @@ export async function registerRoutes(
     }
   });
 
-  // Mark ticket as used (alternative endpoint)
+  // Mark ticket as used (admin only)
   app.post("/api/tickets/:id/mark-used", async (req, res) => {
+    if (!isAdminRequest(req)) {
+      res.status(401).json({ error: "Unauthorized - admin access required" });
+      return;
+    }
     try {
       const ticket = await storage.getTicket(req.params.id);
       if (!ticket) {
@@ -624,6 +683,10 @@ export async function registerRoutes(
 
   // Get recent scans for admin
   app.get("/api/admin/tickets/recent-scans", async (req, res) => {
+    if (!isAdminRequest(req)) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
     try {
       const tickets = await storage.getRecentScannedTickets(10);
       const results = await Promise.all(tickets.map(async (ticket) => {
@@ -648,7 +711,7 @@ export async function registerRoutes(
     }
   });
 
-  // Payment status lookup for attendees
+  // Payment status lookup for attendees (limited PII exposure, uses email match only)
   app.get("/api/payment-status", async (req, res) => {
     try {
       const query = req.query.q as string;
@@ -657,9 +720,17 @@ export async function registerRoutes(
         return;
       }
 
-      const attendee = await storage.getAttendeeByEmailOrPhone(query);
+      // Only match by email for security (not phone) - email is harder to guess
+      const normalizedQuery = query.toLowerCase().trim();
+      if (!normalizedQuery.includes("@")) {
+        res.status(400).json({ error: "Please enter a valid email address" });
+        return;
+      }
+
+      const attendee = await storage.getAttendeeByEmailOrPhone(normalizedQuery);
       if (!attendee) {
-        res.status(404).json({ error: "No booking found with that email or phone number" });
+        // Generic message to prevent enumeration
+        res.status(404).json({ error: "No booking found. Please check your email address." });
         return;
       }
 
@@ -676,12 +747,13 @@ export async function registerRoutes(
 
       const payments = await storage.getPaymentsByAttendee(attendee.id);
 
+      // Return limited PII - only what's necessary for user to verify their booking
       res.json({
         attendee: {
           id: attendee.id,
           fullName: attendee.fullName,
           email: attendee.email,
-          phone: attendee.phone,
+          phone: attendee.phone ? attendee.phone.slice(0, 4) + "****" + attendee.phone.slice(-2) : null,
           attendanceType: attendee.attendanceType,
           needsAccommodation: attendee.needsAccommodation,
           registeredAt: attendee.createdAt,
