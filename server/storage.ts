@@ -1,12 +1,15 @@
 import { 
   users, attendees, camps, campServices, reservations, payments,
   companies, pastEvents, awardees, mediaAssets, announcements, auditLogs, tickets,
+  liveStreamAccess, videoFeedPosts, streamSettings, recordings,
   type User, type InsertUser, type Attendee, type InsertAttendee,
   type Camp, type InsertCamp, type CampService, type InsertCampService,
   type Reservation, type InsertReservation, type Payment, type InsertPayment,
   type Company, type InsertCompany, type PastEvent, type InsertPastEvent,
   type Awardee, type InsertAwardee, type MediaAsset, type InsertMediaAsset,
-  type Announcement, type InsertAnnouncement, type Ticket, type InsertTicket
+  type Announcement, type InsertAnnouncement, type Ticket, type InsertTicket,
+  type LiveStreamAccess, type InsertLiveStreamAccess, type VideoFeedPost, type InsertVideoFeedPost,
+  type StreamSettings, type InsertStreamSettings, type Recording, type InsertRecording
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, or } from "drizzle-orm";
@@ -84,6 +87,28 @@ export interface IStorage {
   getAttendeeByEmailOrPhone(query: string): Promise<Attendee | undefined>;
   getReservationByAttendee(attendeeId: string): Promise<Reservation | undefined>;
   getPaymentsByAttendee(attendeeId: string): Promise<Payment[]>;
+
+  // Stream Settings
+  getStreamSettings(): Promise<StreamSettings | undefined>;
+  upsertStreamSettings(data: Partial<InsertStreamSettings>): Promise<StreamSettings>;
+
+  // Stream Access
+  createStreamAccess(data: InsertLiveStreamAccess): Promise<LiveStreamAccess>;
+  getStreamAccessByCode(accessCode: string): Promise<LiveStreamAccess | undefined>;
+  updateStreamAccess(id: string, data: Partial<LiveStreamAccess>): Promise<LiveStreamAccess | undefined>;
+  getAllStreamAccess(): Promise<LiveStreamAccess[]>;
+
+  // Recordings
+  getRecordings(): Promise<Recording[]>;
+  createRecording(data: InsertRecording): Promise<Recording>;
+  deleteRecording(id: string): Promise<void>;
+
+  // Video Feed
+  getApprovedVideoPosts(): Promise<VideoFeedPost[]>;
+  getAllVideoPosts(): Promise<VideoFeedPost[]>;
+  createVideoPost(data: InsertVideoFeedPost): Promise<VideoFeedPost>;
+  updateVideoPostStatus(id: string, status: string): Promise<VideoFeedPost | undefined>;
+  likeVideoPost(id: string): Promise<VideoFeedPost | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -330,6 +355,97 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(payments)
       .where(eq(payments.attendeeId, attendeeId))
       .orderBy(desc(payments.createdAt));
+  }
+
+  // Stream Settings
+  async getStreamSettings(): Promise<StreamSettings | undefined> {
+    const [settings] = await db.select().from(streamSettings).limit(1);
+    return settings;
+  }
+
+  async upsertStreamSettings(data: Partial<InsertStreamSettings>): Promise<StreamSettings> {
+    const existing = await this.getStreamSettings();
+    if (existing) {
+      const [updated] = await db.update(streamSettings)
+        .set({ ...data, updatedAt: new Date() })
+        .where(eq(streamSettings.id, existing.id))
+        .returning();
+      return updated;
+    }
+    const [created] = await db.insert(streamSettings).values(data as InsertStreamSettings).returning();
+    return created;
+  }
+
+  // Stream Access
+  async createStreamAccess(data: InsertLiveStreamAccess): Promise<LiveStreamAccess> {
+    const [created] = await db.insert(liveStreamAccess).values(data).returning();
+    return created;
+  }
+
+  async getStreamAccessByCode(accessCode: string): Promise<LiveStreamAccess | undefined> {
+    const [access] = await db.select().from(liveStreamAccess)
+      .where(eq(liveStreamAccess.accessCode, accessCode));
+    return access;
+  }
+
+  async updateStreamAccess(id: string, data: Partial<LiveStreamAccess>): Promise<LiveStreamAccess | undefined> {
+    const [updated] = await db.update(liveStreamAccess)
+      .set(data)
+      .where(eq(liveStreamAccess.id, id))
+      .returning();
+    return updated;
+  }
+
+  async getAllStreamAccess(): Promise<LiveStreamAccess[]> {
+    return await db.select().from(liveStreamAccess).orderBy(desc(liveStreamAccess.createdAt));
+  }
+
+  // Recordings
+  async getRecordings(): Promise<Recording[]> {
+    return await db.select().from(recordings).orderBy(desc(recordings.createdAt));
+  }
+
+  async createRecording(data: InsertRecording): Promise<Recording> {
+    const [created] = await db.insert(recordings).values(data).returning();
+    return created;
+  }
+
+  async deleteRecording(id: string): Promise<void> {
+    await db.delete(recordings).where(eq(recordings.id, id));
+  }
+
+  // Video Feed
+  async getApprovedVideoPosts(): Promise<VideoFeedPost[]> {
+    return await db.select().from(videoFeedPosts)
+      .where(eq(videoFeedPosts.status, "approved"))
+      .orderBy(desc(videoFeedPosts.createdAt));
+  }
+
+  async getAllVideoPosts(): Promise<VideoFeedPost[]> {
+    return await db.select().from(videoFeedPosts).orderBy(desc(videoFeedPosts.createdAt));
+  }
+
+  async createVideoPost(data: InsertVideoFeedPost): Promise<VideoFeedPost> {
+    const [created] = await db.insert(videoFeedPosts).values(data).returning();
+    return created;
+  }
+
+  async updateVideoPostStatus(id: string, status: string): Promise<VideoFeedPost | undefined> {
+    const [updated] = await db.update(videoFeedPosts)
+      .set({ status: status as "pending" | "approved" | "rejected" })
+      .where(eq(videoFeedPosts.id, id))
+      .returning();
+    return updated;
+  }
+
+  async likeVideoPost(id: string): Promise<VideoFeedPost | undefined> {
+    const post = await db.select().from(videoFeedPosts).where(eq(videoFeedPosts.id, id));
+    if (!post[0]) return undefined;
+    const [updated] = await db.update(videoFeedPosts)
+      .set({ likes: (post[0].likes || 0) + 1 })
+      .where(eq(videoFeedPosts.id, id))
+      .returning();
+    return updated;
   }
 }
 

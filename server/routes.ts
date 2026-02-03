@@ -3,7 +3,9 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { 
   insertAttendeeSchema, insertCompanySchema, insertReservationSchema,
-  insertAnnouncementSchema, insertPastEventSchema, updatePastEventSchema, type Payment
+  insertAnnouncementSchema, insertPastEventSchema, updatePastEventSchema, 
+  insertLiveStreamAccessSchema, insertVideoFeedPostSchema, insertRecordingSchema,
+  type Payment
 } from "@shared/schema";
 import { z } from "zod";
 import { initializePayment, checkPaymentStatus, isPaymentComplete, verifyPaynowHash } from "./paynow";
@@ -886,6 +888,353 @@ export async function registerRoutes(
       res.json(updated);
     } catch (error) {
       res.status(500).json({ error: "Failed to scan ticket" });
+    }
+  });
+
+  // ========== LIVE STREAMING ROUTES ==========
+
+  // Get stream settings (public)
+  app.get("/api/stream/settings", async (req, res) => {
+    try {
+      const settings = await storage.getStreamSettings();
+      if (!settings) {
+        res.json({
+          streamPrice: "15.00",
+          currency: "USD",
+          isLive: false,
+          streamTitle: "Imiklomelo Ka Dakamela 2026 - Live",
+          allowVideoFeed: false,
+        });
+        return;
+      }
+      res.json(settings);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch stream settings" });
+    }
+  });
+
+  // Update stream settings (admin only)
+  app.put("/api/stream/settings", async (req, res) => {
+    if (!isAdminRequest(req)) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+    try {
+      const settings = await storage.upsertStreamSettings(req.body);
+      res.json(settings);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update stream settings" });
+    }
+  });
+
+  // Verify stream access code
+  app.post("/api/stream/verify-access", async (req, res) => {
+    try {
+      const { accessCode } = req.body;
+      if (!accessCode) {
+        res.status(400).json({ error: "Access code required" });
+        return;
+      }
+      const access = await storage.getStreamAccessByCode(accessCode);
+      if (!access || access.status !== "active") {
+        res.status(401).json({ error: "Invalid or expired access code" });
+        return;
+      }
+      res.json({ email: access.email, fullName: access.fullName });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to verify access" });
+    }
+  });
+
+  // Purchase stream access
+  app.post("/api/stream/purchase", async (req, res) => {
+    try {
+      const { fullName, email, phone } = req.body;
+      if (!fullName || !email) {
+        res.status(400).json({ error: "Name and email required" });
+        return;
+      }
+      
+      const settings = await storage.getStreamSettings();
+      const price = settings?.streamPrice || "15.00";
+      
+      const accessCode = randomUUID().substring(0, 8).toUpperCase();
+      
+      const streamAccess = await storage.createStreamAccess({
+        fullName,
+        email,
+        phone,
+        accessCode,
+        status: "pending",
+      });
+
+      const payment = await initializePayment({
+        amount: parseFloat(price),
+        email,
+        reference: `STREAM-${streamAccess.id}`,
+        returnUrl: `${process.env.REPLIT_DEV_DOMAIN ? 'https://' + process.env.REPLIT_DEV_DOMAIN : ''}/live-stream?code=${accessCode}`,
+      });
+
+      if (payment.status !== "Ok" || !payment.browserUrl) {
+        res.status(500).json({ error: payment.error || "Payment initialization failed" });
+        return;
+      }
+
+      res.json({ 
+        redirectUrl: payment.browserUrl,
+        accessCode,
+        pollUrl: payment.pollUrl,
+      });
+    } catch (error) {
+      console.error("Stream purchase error:", error);
+      res.status(500).json({ error: "Failed to process purchase" });
+    }
+  });
+
+  // Get all stream access records (admin)
+  app.get("/api/stream/access", async (req, res) => {
+    if (!isAdminRequest(req)) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+    try {
+      const accessList = await storage.getAllStreamAccess();
+      res.json(accessList);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch access list" });
+    }
+  });
+
+  // ========== RECORDINGS ROUTES ==========
+
+  app.get("/api/recordings", async (req, res) => {
+    try {
+      const recordings = await storage.getRecordings();
+      res.json(recordings);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch recordings" });
+    }
+  });
+
+  app.post("/api/recordings", async (req, res) => {
+    if (!isAdminRequest(req)) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+    try {
+      const recording = await storage.createRecording(req.body);
+      res.json(recording);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to create recording" });
+    }
+  });
+
+  app.delete("/api/recordings/:id", async (req, res) => {
+    if (!isAdminRequest(req)) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+    try {
+      await storage.deleteRecording(req.params.id);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete recording" });
+    }
+  });
+
+  // ========== VIDEO FEED ROUTES ==========
+
+  // Get approved video posts (public)
+  app.get("/api/video-feed", async (req, res) => {
+    try {
+      const posts = await storage.getApprovedVideoPosts();
+      res.json(posts);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch video feed" });
+    }
+  });
+
+  // Get all video posts (admin)
+  app.get("/api/video-feed/all", async (req, res) => {
+    if (!isAdminRequest(req)) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+    try {
+      const posts = await storage.getAllVideoPosts();
+      res.json(posts);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch video posts" });
+    }
+  });
+
+  // Submit a video post
+  app.post("/api/video-feed", async (req, res) => {
+    try {
+      const settings = await storage.getStreamSettings();
+      if (!settings?.allowVideoFeed) {
+        res.status(403).json({ error: "Video feed is not active at this time" });
+        return;
+      }
+      
+      const post = await storage.createVideoPost(req.body);
+      res.json(post);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to submit video" });
+    }
+  });
+
+  // Approve/reject video post (admin)
+  app.put("/api/video-feed/:id/status", async (req, res) => {
+    if (!isAdminRequest(req)) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+    try {
+      const { status } = req.body;
+      const updated = await storage.updateVideoPostStatus(req.params.id, status);
+      res.json(updated);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update video status" });
+    }
+  });
+
+  // Like a video post
+  app.post("/api/video-feed/:id/like", async (req, res) => {
+    try {
+      const updated = await storage.likeVideoPost(req.params.id);
+      res.json(updated);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to like video" });
+    }
+  });
+
+  // ========== ADMIN STREAMING ROUTES ==========
+
+  // Get stream settings (admin)
+  app.get("/api/admin/stream-settings", async (req, res) => {
+    if (!isAdminRequest(req)) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+    try {
+      const settings = await storage.getStreamSettings();
+      res.json(settings || {});
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch stream settings" });
+    }
+  });
+
+  // Update stream settings (admin)
+  const updateStreamSettingsSchema = z.object({
+    streamUrl: z.string().optional(),
+    streamTitle: z.string().optional(),
+    isLive: z.boolean().optional(),
+    streamPrice: z.string().optional(),
+    allowVideoFeed: z.boolean().optional(),
+  });
+  
+  app.put("/api/admin/stream-settings", async (req, res) => {
+    if (!isAdminRequest(req)) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+    try {
+      const parsed = updateStreamSettingsSchema.safeParse(req.body);
+      if (!parsed.success) {
+        res.status(400).json({ error: "Invalid stream settings data" });
+        return;
+      }
+      const settings = await storage.updateStreamSettings(parsed.data);
+      res.json(settings);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update stream settings" });
+    }
+  });
+
+  // Get all video posts (admin)
+  app.get("/api/admin/video-posts", async (req, res) => {
+    if (!isAdminRequest(req)) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+    try {
+      const posts = await storage.getAllVideoPosts();
+      res.json(posts);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch video posts" });
+    }
+  });
+
+  // Moderate video post (admin)
+  const moderatePostSchema = z.object({
+    status: z.enum(["approved", "rejected"]),
+  });
+  
+  app.put("/api/admin/video-posts/:id/moderate", async (req, res) => {
+    if (!isAdminRequest(req)) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+    try {
+      const parsed = moderatePostSchema.safeParse(req.body);
+      if (!parsed.success) {
+        res.status(400).json({ error: "Invalid status. Must be 'approved' or 'rejected'" });
+        return;
+      }
+      const updated = await storage.updateVideoPostStatus(req.params.id, parsed.data.status);
+      res.json(updated);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to moderate video post" });
+    }
+  });
+
+  // Add recording (admin)
+  app.post("/api/admin/recordings", async (req, res) => {
+    if (!isAdminRequest(req)) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+    try {
+      const parsed = insertRecordingSchema.safeParse(req.body);
+      if (!parsed.success) {
+        res.status(400).json({ error: "Invalid recording data" });
+        return;
+      }
+      const recording = await storage.createRecording(parsed.data);
+      res.json(recording);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to create recording" });
+    }
+  });
+
+  // Delete recording (admin)
+  app.delete("/api/admin/recordings/:id", async (req, res) => {
+    if (!isAdminRequest(req)) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+    try {
+      await storage.deleteRecording(req.params.id);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete recording" });
+    }
+  });
+
+  // Get stream stats (admin)
+  app.get("/api/admin/stream-stats", async (req, res) => {
+    if (!isAdminRequest(req)) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+    try {
+      const accessList = await storage.getAllStreamAccess();
+      const totalSubscribers = accessList.filter(a => a.status === "active").length;
+      const totalRevenue = accessList.filter(a => a.status === "active").reduce((sum, a) => sum + parseFloat(a.amount || "0"), 0);
+      res.json({ totalSubscribers, totalRevenue });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch stream stats" });
     }
   });
 

@@ -1,7 +1,7 @@
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Menu, Moon, Sun, Calendar, Tent, Award, Building2, Home, LogIn, LogOut, User } from "lucide-react";
+import { Menu, Moon, Sun, Calendar, Tent, Award, Building2, Home, LogIn, LogOut, User, Tv, Video } from "lucide-react";
 import { useTheme } from "./theme-provider";
 import { useState } from "react";
 import logoImage from "@assets/DK_LOGO_1769944557082.png";
@@ -19,6 +19,7 @@ const navLinks = [
   { href: "/", label: "Home", icon: Home },
   { href: "/event", label: "Event 2026", icon: Calendar },
   { href: "/accommodation", label: "Accommodation", icon: Tent },
+  { href: "/live-stream", label: "Watch Live", icon: Tv },
   { href: "/past-events", label: "Heritage Archive", icon: Award },
   { href: "/sponsors", label: "Sponsors", icon: Building2 },
 ];

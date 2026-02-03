@@ -16,12 +16,12 @@ import {
   Users, Tent, Building2, Award, Bell, Settings, Shield, 
   CheckCircle, XCircle, Clock, Plus, RefreshCw, Eye,
   BarChart3, Download, DollarSign, TrendingUp, UserCheck,
-  Globe, MapPin, Calendar, ScanLine, Upload, X
+  Globe, MapPin, Calendar, ScanLine, Upload, X, Tv, Video
 } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { Attendee, Reservation, Company, Announcement, PastEvent } from "@shared/schema";
+import type { Attendee, Reservation, Company, Announcement, PastEvent, StreamSettings, VideoFeedPost, Recording } from "@shared/schema";
 import { Image as ImageIcon } from "lucide-react";
 import { 
   PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, 
@@ -193,6 +193,375 @@ function ImageUpdateDialog({ event, onUpdate, isPending }: {
   );
 }
 
+function StreamingManagement() {
+  const { toast } = useToast();
+  const [streamSettings, setStreamSettings] = useState({
+    streamUrl: "",
+    streamTitle: "Chief Dakamela Achievers Awards 2026 - Live Stream",
+    isLive: false,
+    streamPrice: "15.00",
+    allowVideoFeed: false,
+  });
+  const [newRecording, setNewRecording] = useState({
+    title: "",
+    description: "",
+    videoUrl: "",
+    thumbnailUrl: "",
+    duration: 0,
+  });
+
+  const { data: settings, isLoading: settingsLoading } = useQuery<StreamSettings>({
+    queryKey: ["/api/admin/stream-settings"],
+  });
+
+  const { data: videoPosts, isLoading: postsLoading } = useQuery<VideoFeedPost[]>({
+    queryKey: ["/api/admin/video-posts"],
+  });
+
+  const { data: recordings, isLoading: recordingsLoading } = useQuery<Recording[]>({
+    queryKey: ["/api/recordings"],
+  });
+
+  const { data: streamStats } = useQuery<{ totalSubscribers: number; totalRevenue: number }>({
+    queryKey: ["/api/admin/stream-stats"],
+  });
+
+  const updateSettingsMutation = useMutation({
+    mutationFn: async (data: Partial<StreamSettings>) => {
+      return apiRequest("PUT", "/api/admin/stream-settings", data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/stream-settings"] });
+      toast({ title: "Settings updated", description: "Stream settings have been saved." });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to update settings.", variant: "destructive" });
+    },
+  });
+
+  const moderatePostMutation = useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: "approved" | "rejected" }) => {
+      return apiRequest("PUT", `/api/admin/video-posts/${id}/moderate`, { status });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/video-posts"] });
+      toast({ title: "Post moderated", description: "Video post status updated." });
+    },
+  });
+
+  const addRecordingMutation = useMutation({
+    mutationFn: async (data: typeof newRecording) => {
+      return apiRequest("POST", "/api/admin/recordings", data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/recordings"] });
+      setNewRecording({ title: "", description: "", videoUrl: "", thumbnailUrl: "", duration: 0 });
+      toast({ title: "Recording added", description: "New recording added to the library." });
+    },
+  });
+
+  const deleteRecordingMutation = useMutation({
+    mutationFn: async (id: string) => {
+      return apiRequest("DELETE", `/api/admin/recordings/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/recordings"] });
+      toast({ title: "Recording deleted", description: "Recording removed from library." });
+    },
+  });
+
+  // Sync settings from server
+  if (settings && !settingsLoading && streamSettings.streamUrl === "" && settings.streamUrl) {
+    setStreamSettings({
+      streamUrl: settings.streamUrl || "",
+      streamTitle: settings.streamTitle || "Chief Dakamela Achievers Awards 2026 - Live Stream",
+      isLive: settings.isLive || false,
+      streamPrice: settings.streamPrice || "15.00",
+      allowVideoFeed: settings.allowVideoFeed || false,
+    });
+  }
+
+  const pendingPosts = videoPosts?.filter(p => p.status === "pending") || [];
+
+  return (
+    <div className="space-y-6">
+      <div className="grid md:grid-cols-3 gap-4">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <Users className="w-4 h-4 text-primary" />
+              Stream Subscribers
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{streamStats?.totalSubscribers || 0}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <DollarSign className="w-4 h-4 text-green-500" />
+              Stream Revenue
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">${streamStats?.totalRevenue?.toFixed(2) || "0.00"}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <Video className="w-4 h-4 text-orange-500" />
+              Pending Video Posts
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{pendingPosts.length}</div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid lg:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Stream Settings</CardTitle>
+            <CardDescription>Configure your live stream settings</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <Label>Stream Title</Label>
+              <Input
+                value={streamSettings.streamTitle}
+                onChange={(e) => setStreamSettings(prev => ({ ...prev, streamTitle: e.target.value }))}
+                placeholder="Enter stream title"
+                data-testid="input-stream-title"
+              />
+            </div>
+            <div>
+              <Label>Stream URL (HLS/DASH)</Label>
+              <Input
+                value={streamSettings.streamUrl}
+                onChange={(e) => setStreamSettings(prev => ({ ...prev, streamUrl: e.target.value }))}
+                placeholder="https://stream.example.com/live.m3u8"
+                data-testid="input-stream-url"
+              />
+            </div>
+            <div>
+              <Label>Stream Price (USD)</Label>
+              <Input
+                type="number"
+                step="0.01"
+                value={streamSettings.streamPrice}
+                onChange={(e) => setStreamSettings(prev => ({ ...prev, streamPrice: e.target.value }))}
+                placeholder="15.00"
+                data-testid="input-stream-price"
+              />
+            </div>
+            <div className="flex items-center gap-4 pt-2">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={streamSettings.isLive}
+                  onChange={(e) => setStreamSettings(prev => ({ ...prev, isLive: e.target.checked }))}
+                  className="w-4 h-4 accent-primary"
+                  data-testid="checkbox-is-live"
+                />
+                <span className="text-sm font-medium">Stream is Live</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={streamSettings.allowVideoFeed}
+                  onChange={(e) => setStreamSettings(prev => ({ ...prev, allowVideoFeed: e.target.checked }))}
+                  className="w-4 h-4 accent-primary"
+                  data-testid="checkbox-allow-video-feed"
+                />
+                <span className="text-sm font-medium">Allow Video Feed Posts</span>
+              </label>
+            </div>
+            <Button
+              onClick={() => updateSettingsMutation.mutate(streamSettings)}
+              disabled={updateSettingsMutation.isPending}
+              data-testid="button-save-stream-settings"
+            >
+              {updateSettingsMutation.isPending ? "Saving..." : "Save Settings"}
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Add Recording</CardTitle>
+            <CardDescription>Add a past recording to the library</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <Label>Title</Label>
+              <Input
+                value={newRecording.title}
+                onChange={(e) => setNewRecording(prev => ({ ...prev, title: e.target.value }))}
+                placeholder="Recording title"
+                data-testid="input-recording-title"
+              />
+            </div>
+            <div>
+              <Label>Description</Label>
+              <Textarea
+                value={newRecording.description}
+                onChange={(e) => setNewRecording(prev => ({ ...prev, description: e.target.value }))}
+                placeholder="Brief description"
+                rows={2}
+                data-testid="input-recording-description"
+              />
+            </div>
+            <div>
+              <Label>Video URL</Label>
+              <Input
+                value={newRecording.videoUrl}
+                onChange={(e) => setNewRecording(prev => ({ ...prev, videoUrl: e.target.value }))}
+                placeholder="https://..."
+                data-testid="input-recording-video-url"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Thumbnail URL</Label>
+                <Input
+                  value={newRecording.thumbnailUrl}
+                  onChange={(e) => setNewRecording(prev => ({ ...prev, thumbnailUrl: e.target.value }))}
+                  placeholder="https://..."
+                  data-testid="input-recording-thumbnail"
+                />
+              </div>
+              <div>
+                <Label>Duration (seconds)</Label>
+                <Input
+                  type="number"
+                  value={newRecording.duration}
+                  onChange={(e) => setNewRecording(prev => ({ ...prev, duration: parseInt(e.target.value) || 0 }))}
+                  placeholder="3600"
+                  data-testid="input-recording-duration"
+                />
+              </div>
+            </div>
+            <Button
+              onClick={() => addRecordingMutation.mutate(newRecording)}
+              disabled={addRecordingMutation.isPending || !newRecording.title || !newRecording.videoUrl}
+              data-testid="button-add-recording"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              {addRecordingMutation.isPending ? "Adding..." : "Add Recording"}
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+
+      {pendingPosts.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Clock className="w-5 h-5 text-orange-500" />
+              Pending Video Posts ({pendingPosts.length})
+            </CardTitle>
+            <CardDescription>Review and moderate user-submitted videos</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {pendingPosts.map((post) => (
+                <div key={post.id} className="flex items-start gap-4 p-4 border rounded-md">
+                  <div className="flex-1">
+                    <p className="font-medium">{post.caption || "No caption"}</p>
+                    <p className="text-sm text-muted-foreground">
+                      By: {post.userName} • {new Date(post.createdAt!).toLocaleString()}
+                    </p>
+                    <a
+                      href={post.videoUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm text-primary hover:underline"
+                    >
+                      View Video
+                    </a>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => moderatePostMutation.mutate({ id: post.id, status: "approved" })}
+                      disabled={moderatePostMutation.isPending}
+                      data-testid={`button-approve-post-${post.id}`}
+                    >
+                      <CheckCircle className="w-4 h-4 mr-1 text-green-500" />
+                      Approve
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => moderatePostMutation.mutate({ id: post.id, status: "rejected" })}
+                      disabled={moderatePostMutation.isPending}
+                      data-testid={`button-reject-post-${post.id}`}
+                    >
+                      <XCircle className="w-4 h-4 mr-1 text-red-500" />
+                      Reject
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Recordings Library</CardTitle>
+          <CardDescription>Manage past recordings</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {recordingsLoading ? (
+            <Skeleton className="h-32 w-full" />
+          ) : recordings && recordings.length > 0 ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Title</TableHead>
+                  <TableHead>Duration</TableHead>
+                  <TableHead>Added</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {recordings.map((rec) => (
+                  <TableRow key={rec.id}>
+                    <TableCell className="font-medium">{rec.title}</TableCell>
+                    <TableCell>{Math.floor(rec.duration / 60)}:{(rec.duration % 60).toString().padStart(2, "0")}</TableCell>
+                    <TableCell>{new Date(rec.createdAt!).toLocaleDateString()}</TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => deleteRecordingMutation.mutate(rec.id)}
+                        disabled={deleteRecordingMutation.isPending}
+                        data-testid={`button-delete-recording-${rec.id}`}
+                      >
+                        <X className="w-4 h-4 text-destructive" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              No recordings yet. Add your first recording above.
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 export default function Admin() {
   const { toast } = useToast();
   const [newAnnouncement, setNewAnnouncement] = useState({ title: "", content: "" });
@@ -354,7 +723,7 @@ export default function Admin() {
         </div>
 
         <Tabs defaultValue="analytics" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-7 max-w-4xl">
+          <TabsList className="grid w-full grid-cols-8 max-w-5xl">
             <TabsTrigger value="analytics" data-testid="tab-analytics">
               <BarChart3 className="w-4 h-4 mr-2" />
               Analytics
@@ -370,6 +739,10 @@ export default function Admin() {
             <TabsTrigger value="companies" data-testid="tab-companies">
               <Building2 className="w-4 h-4 mr-2" />
               Applications
+            </TabsTrigger>
+            <TabsTrigger value="streaming" data-testid="tab-streaming">
+              <Tv className="w-4 h-4 mr-2" />
+              Streaming
             </TabsTrigger>
             <TabsTrigger value="heritage" data-testid="tab-heritage">
               <Award className="w-4 h-4 mr-2" />
@@ -783,6 +1156,10 @@ export default function Admin() {
                 )}
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="streaming">
+            <StreamingManagement />
           </TabsContent>
 
           <TabsContent value="heritage">

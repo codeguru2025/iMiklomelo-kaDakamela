@@ -18,6 +18,8 @@ import Admin from "@/pages/admin";
 import TicketPage from "@/pages/ticket";
 import ScanTickets from "@/pages/scan-tickets";
 import PaymentStatusPage from "@/pages/payment-status";
+import LiveStream from "@/pages/live-stream";
+import VideoFeed from "@/pages/video-feed";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -34,6 +36,8 @@ function Router() {
       <Route path="/ticket/:attendeeId" component={TicketPage} />
       <Route path="/scan-tickets" component={ScanTickets} />
       <Route path="/payment-status" component={PaymentStatusPage} />
+      <Route path="/live-stream" component={LiveStream} />
+      <Route path="/video-feed" component={VideoFeed} />
       <Route component={NotFound} />
     </Switch>
   );
