@@ -1,5 +1,6 @@
 import { Link } from "wouter";
 import logoImage from "@assets/DK_LOGO_1769944557082.png";
+import chibikhululogo from "@assets/CK_Logo_1770117291903.jpeg";
 import { MapPin, Phone, Mail, Facebook, Instagram, Twitter } from "lucide-react";
 
 export function Footer() {
@@ -50,7 +51,7 @@ export function Footer() {
               </div>
               <div className="flex items-center gap-3 text-sm text-muted-foreground">
                 <Phone className="h-4 w-4 shrink-0" />
-                <span>+27 (0) 83 123 4567</span>
+                <a href="tel:+263774788370" className="hover:text-foreground transition-colors">+263 77 478 8370</a>
               </div>
               <div className="flex items-center gap-3 text-sm text-muted-foreground">
                 <Mail className="h-4 w-4 shrink-0" />
@@ -100,6 +101,20 @@ export function Footer() {
           <p className="text-xs text-muted-foreground">
             This platform preserves the authority of Chief Dakamela tradition.
           </p>
+        </div>
+
+        <div className="border-t mt-6 pt-6 flex flex-col items-center gap-3">
+          <div className="flex items-center gap-3">
+            <img src={chibikhululogo} alt="Chibikhulu" className="h-10 w-10 rounded-full object-cover" />
+            <div className="text-center">
+              <p className="text-sm text-muted-foreground">
+                Created by <span className="font-semibold text-foreground">Chibikhulu</span>
+              </p>
+              <a href="tel:+263773665350" className="text-xs text-muted-foreground hover:text-foreground transition-colors">
+                +263 77 366 5350
+              </a>
+            </div>
+          </div>
         </div>
       </div>
     </footer>
