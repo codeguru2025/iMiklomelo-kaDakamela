@@ -146,7 +146,7 @@ export default function TicketPage() {
                 <MapPin className="w-5 h-5 text-primary mt-0.5" />
                 <div>
                   <p className="text-sm text-muted-foreground">Location</p>
-                  <p className="font-semibold">Dakamela Royal Grounds, KwaZulu-Natal</p>
+                  <p className="font-semibold">Dakamela Hall, Nkayi District, Zimbabwe</p>
                 </div>
               </div>
 

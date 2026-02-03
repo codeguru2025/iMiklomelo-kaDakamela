@@ -11,7 +11,7 @@ import logoImage from "@assets/DK_LOGO_1769944557082.png";
 const schedule = [
   { 
     day: "Day 1 - Friday", 
-    date: "December 11, 2026",
+    date: "April 3, 2026",
     events: [
       { time: "14:00", title: "Gates Open", description: "Registration and check-in begins" },
       { time: "16:00", title: "Welcome Ceremony", description: "Traditional welcome and cultural performances" },
@@ -20,7 +20,7 @@ const schedule = [
   },
   { 
     day: "Day 2 - Saturday", 
-    date: "December 12, 2026",
+    date: "April 4, 2026",
     events: [
       { time: "08:00", title: "Morning Rituals", description: "Traditional cultural ceremonies" },
       { time: "10:00", title: "Exhibition Opens", description: "Art, crafts, fashion, and food stalls" },
@@ -31,10 +31,20 @@ const schedule = [
   },
   { 
     day: "Day 3 - Sunday", 
-    date: "December 13, 2026",
+    date: "April 5, 2026",
+    events: [
+      { time: "08:00", title: "Cultural Ceremonies", description: "Traditional rituals and celebrations" },
+      { time: "10:00", title: "Community Activities", description: "Sports, games, and family events" },
+      { time: "14:00", title: "Cultural Performances", description: "Traditional music and dance" },
+      { time: "19:00", title: "Evening Entertainment", description: "Music and celebration" },
+    ]
+  },
+  { 
+    day: "Day 4 - Monday", 
+    date: "April 6, 2026",
     events: [
       { time: "08:00", title: "Thanksgiving Ceremony", description: "Community prayers and gratitude" },
-      { time: "10:00", title: "Cultural Performances", description: "Traditional music and dance" },
+      { time: "10:00", title: "Final Cultural Performances", description: "Traditional music and dance" },
       { time: "13:00", title: "Closing Ceremony", description: "Farewell and departure" },
     ]
   },
@@ -57,7 +67,7 @@ export default function Event() {
         <div className="container relative mx-auto px-4 text-center">
           <Badge className="mb-6 bg-amber-500/20 text-amber-100 border-amber-400/30">
             <Calendar className="w-3 h-3 mr-1" />
-            December 11-13, 2026
+            April 3-6, 2026
           </Badge>
           
           <h1 className="font-serif text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6">
@@ -65,14 +75,14 @@ export default function Event() {
           </h1>
           
           <p className="text-lg text-amber-100/90 mb-8 max-w-2xl mx-auto">
-            Join thousands of attendees from across the world for three days of cultural celebration, 
+            Join thousands of attendees from across the world for four days of cultural celebration, 
             achievement recognition, and community bonding.
           </p>
 
           <div className="flex flex-wrap gap-6 justify-center">
             <div className="flex items-center gap-2 text-amber-100">
               <MapPin className="w-5 h-5 text-amber-400" />
-              <span>Dakamela Royal Grounds, KwaZulu-Natal</span>
+              <span>Dakamela Hall, Nkayi District, Zimbabwe</span>
             </div>
             <div className="flex items-center gap-2 text-amber-100">
               <Users className="w-5 h-5 text-amber-400" />
@@ -136,11 +146,11 @@ export default function Event() {
               Event Schedule
             </Badge>
             <h2 className="font-serif text-3xl md:text-4xl font-bold mb-4">
-              Three Days of Celebration
+              Four Days of Celebration
             </h2>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-6">
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
             {schedule.map((day, index) => (
               <Card key={index} className="overflow-hidden" data-testid={`card-schedule-day-${index + 1}`}>
                 <CardHeader className="bg-primary/5">

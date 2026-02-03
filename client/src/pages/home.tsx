@@ -6,6 +6,7 @@ import { Calendar, MapPin, Users, Award, Tent, ArrowRight, Star, Crown, Sparkles
 import { useQuery } from "@tanstack/react-query";
 import type { Announcement, Company, PastEvent } from "@shared/schema";
 import logoImage from "@assets/DK_LOGO_1769944557082.png";
+import kingdomBlueLogo from "@assets/kbf_logo_1770113825582.png";
 
 export default function Home() {
   const { data: announcements } = useQuery<Announcement[]>({
@@ -36,7 +37,7 @@ export default function Home() {
             <div className="flex-1 text-center lg:text-left">
               <Badge className="mb-6 bg-amber-500/20 text-amber-100 border-amber-400/30" data-testid="badge-event-date">
                 <Calendar className="w-3 h-3 mr-1" />
-                December 2026
+                April 3-6, 2026
               </Badge>
               
               <h1 className="font-serif text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold text-white mb-6 leading-tight">
@@ -66,7 +67,7 @@ export default function Home() {
               <div className="flex flex-wrap gap-6 justify-center lg:justify-start mt-10">
                 <div className="flex items-center gap-2 text-amber-100">
                   <MapPin className="w-5 h-5 text-amber-400" />
-                  <span className="text-sm">KwaZulu-Natal, SA</span>
+                  <span className="text-sm">Nkayi District, Zimbabwe</span>
                 </div>
                 <div className="flex items-center gap-2 text-amber-100">
                   <Users className="w-5 h-5 text-amber-400" />
@@ -94,6 +95,23 @@ export default function Home() {
         </div>
 
         <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-background to-transparent" />
+      </section>
+
+      {/* Main Sponsor Section */}
+      <section className="py-8 bg-card/50 border-b">
+        <div className="container mx-auto px-4">
+          <div className="flex flex-col md:flex-row items-center justify-center gap-4 md:gap-8">
+            <span className="text-sm text-muted-foreground uppercase tracking-wider font-medium">Main Sponsor</span>
+            <div className="bg-white rounded-xl px-8 py-4 shadow-sm">
+              <img 
+                src={kingdomBlueLogo} 
+                alt="KingdomBlue - Main Sponsor" 
+                className="h-12 md:h-16 w-auto object-contain"
+                data-testid="img-main-sponsor"
+              />
+            </div>
+          </div>
+        </div>
       </section>
 
       {latestAnnouncement && (
@@ -124,7 +142,7 @@ export default function Home() {
             </h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
               Experience a celebration of cultural heritage, achievement recognition, and community gathering 
-              in the heart of KwaZulu-Natal.
+              at Dakamela Hall, Nkayi District, Zimbabwe.
             </p>
           </div>
 

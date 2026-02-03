@@ -46,7 +46,7 @@ export function Footer() {
             <div className="flex flex-col space-y-3">
               <div className="flex items-start gap-3 text-sm text-muted-foreground">
                 <MapPin className="h-4 w-4 mt-0.5 shrink-0" />
-                <span>Dakamela Royal Grounds, KwaZulu-Natal, South Africa</span>
+                <span>Dakamela Hall, Chief Dakamela, Nkayi District, Zimbabwe</span>
               </div>
               <div className="flex items-center gap-3 text-sm text-muted-foreground">
                 <Phone className="h-4 w-4 shrink-0" />
