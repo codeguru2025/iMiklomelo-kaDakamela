@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -16,7 +16,7 @@ import {
   Users, Tent, Building2, Award, Bell, Settings, Shield, 
   CheckCircle, XCircle, Clock, Plus, RefreshCw, Eye,
   BarChart3, Download, DollarSign, TrendingUp, UserCheck,
-  Globe, MapPin, Calendar, ScanLine
+  Globe, MapPin, Calendar, ScanLine, Upload, X
 } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -74,6 +74,49 @@ function ImageUpdateDialog({ event, onUpdate, isPending }: {
   isPending: boolean;
 }) {
   const [imageUrl, setImageUrl] = useState(event.imageUrl || "");
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileUpload = async (file: File) => {
+    if (!file.type.startsWith("image/")) {
+      return;
+    }
+    
+    setIsUploading(true);
+    setUploadProgress(10);
+    
+    try {
+      const response = await fetch("/api/uploads/request-url", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: file.name,
+          size: file.size,
+          contentType: file.type,
+        }),
+      });
+      
+      if (!response.ok) throw new Error("Failed to get upload URL");
+      
+      const { uploadURL, objectPath } = await response.json();
+      setUploadProgress(30);
+      
+      await fetch(uploadURL, {
+        method: "PUT",
+        body: file,
+        headers: { "Content-Type": file.type },
+      });
+      
+      setUploadProgress(100);
+      setImageUrl(objectPath);
+    } catch (error) {
+      console.error("Upload failed:", error);
+    } finally {
+      setIsUploading(false);
+      setUploadProgress(0);
+    }
+  };
   
   return (
     <Dialog>
@@ -87,32 +130,62 @@ function ImageUpdateDialog({ event, onUpdate, isPending }: {
         <DialogHeader>
           <DialogTitle>Update Event Image</DialogTitle>
           <DialogDescription>
-            Add or change the image for {event.title}
+            Upload an image from your device for {event.title}
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
-          <div>
-            <Label>Image URL</Label>
-            <Input 
-              value={imageUrl}
-              onChange={(e) => setImageUrl(e.target.value)}
-              placeholder="https://example.com/image.jpg"
-              data-testid={`input-update-image-${event.id}`}
+          <div 
+            className="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer hover-elevate transition-colors"
+            onClick={() => fileInputRef.current?.click()}
+          >
+            <input 
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) handleFileUpload(file);
+              }}
+              data-testid={`input-file-upload-${event.id}`}
             />
+            <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
+            <p className="text-sm text-muted-foreground">
+              {isUploading ? `Uploading... ${uploadProgress}%` : "Click to upload an image"}
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Images are served via CDN for fast loading
+            </p>
           </div>
+          
           {imageUrl && (
-            <div className="rounded-lg overflow-hidden">
-              <img src={imageUrl} alt="Preview" className="w-full h-32 object-cover" />
+            <div className="rounded-lg overflow-hidden border">
+              <img 
+                src={imageUrl} 
+                alt="Preview" 
+                className="w-full h-40 object-cover" 
+              />
+              <div className="p-2 bg-muted/50 flex items-center justify-between">
+                <span className="text-xs text-muted-foreground truncate flex-1">{imageUrl}</span>
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => setImageUrl("")}
+                  data-testid={`button-clear-image-${event.id}`}
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
             </div>
           )}
         </div>
         <DialogFooter>
           <Button 
             onClick={() => onUpdate(event.id, imageUrl)}
-            disabled={isPending}
+            disabled={isPending || isUploading || !imageUrl}
             data-testid={`button-save-image-${event.id}`}
           >
-            Save Image
+            {isPending ? "Saving..." : "Save Image"}
           </Button>
         </DialogFooter>
       </DialogContent>

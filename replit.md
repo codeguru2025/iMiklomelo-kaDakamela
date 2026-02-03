@@ -112,6 +112,17 @@ New demographic fields collected from all attendees:
 - **Analytics**: Demographics, revenue tracking, camp occupancy, attendance types with recharts visualizations
 - **CSV Export**: Download attendee data for offline analysis
 - **Authentication**: Protected with `ADMIN_SECRET_KEY` header (development mode bypasses)
+- **Heritage Archive Tab**: Manage past events with image uploads
+
+### Image Storage (CDN)
+- **Provider**: Replit Object Storage (Google Cloud Storage backend with CDN)
+- **Upload Flow**: Two-step presigned URL upload (metadata → direct upload to storage)
+- **Serving**: Images served via `/objects/:dir/:id` route with CDN caching
+- **Features**: 
+  - Fast loading via CDN
+  - Direct device upload (no server processing)
+  - Replace images with new uploads
+- **Environment Variables**: `DEFAULT_OBJECT_STORAGE_BUCKET_ID`, `PUBLIC_OBJECT_SEARCH_PATHS`, `PRIVATE_OBJECT_DIR`
 
 ### QR Code Ticketing
 - **Ticket Generation**: Unique ticket codes generated on registration

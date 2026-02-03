@@ -9,6 +9,7 @@ import { z } from "zod";
 import { initializePayment, checkPaymentStatus, isPaymentComplete, verifyPaynowHash } from "./paynow";
 import { randomUUID } from "crypto";
 import { setupAuth, registerAuthRoutes } from "./replit_integrations/auth";
+import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
 import { sendRegistrationEmail, sendBookingConfirmationEmail, sendPaymentConfirmationEmail } from "./email";
 
 export async function registerRoutes(
@@ -19,6 +20,9 @@ export async function registerRoutes(
   // Setup Replit Auth (MUST be before other routes)
   await setupAuth(app);
   registerAuthRoutes(app);
+  
+  // Register object storage routes for file uploads
+  registerObjectStorageRoutes(app);
   
   // Attendees
   app.get("/api/attendees", async (req, res) => {
