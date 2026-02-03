@@ -573,8 +573,12 @@ export async function registerRoutes(
     }
   });
 
-  // Get ticket by code (for QR scanning)
+  // Get ticket by code (for QR scanning) - admin only
   app.get("/api/tickets/scan/:code", async (req, res) => {
+    if (!isAdminRequest(req)) {
+      res.status(401).json({ error: "Unauthorized - admin access required" });
+      return;
+    }
     try {
       const ticket = await storage.getTicketByCode(req.params.code);
       if (!ticket) {
@@ -584,12 +588,17 @@ export async function registerRoutes(
 
       const attendee = await storage.getAttendee(ticket.attendeeId);
       
+      // Return limited data needed for scanning
       res.json({
-        ticket,
+        ticket: {
+          id: ticket.id,
+          ticketCode: ticket.ticketCode,
+          status: ticket.status,
+          attendanceType: ticket.attendanceType,
+        },
         attendee: attendee ? {
           fullName: attendee.fullName,
           attendanceType: attendee.attendanceType,
-          country: attendee.country,
         } : null,
       });
     } catch (error) {
