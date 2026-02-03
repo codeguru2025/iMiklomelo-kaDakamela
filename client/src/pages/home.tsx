@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, MapPin, Users, Award, Tent, ArrowRight, Star, Crown, Sparkles, Building2 } from "lucide-react";
+import { Calendar, MapPin, Users, Award, Tent, ArrowRight, Star, Crown, Sparkles, Building2, Ticket } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import type { Announcement, Company, PastEvent } from "@shared/schema";
 import logoImage from "@assets/DK_LOGO_1769944557082.png";
@@ -96,13 +96,23 @@ export default function Home() {
                 Where tradition meets excellence, and heritage is celebrated.
               </p>
 
-              <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
+              <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start flex-wrap">
                 <Link href="/register">
                   <Button size="lg" className="w-full sm:w-auto gap-2 bg-amber-500 hover:bg-amber-600 text-amber-950" data-testid="hero-button-register">
                     Register Now
                     <ArrowRight className="w-4 h-4" />
                   </Button>
                 </Link>
+                <a 
+                  href="https://www.zimtickets.com/event/imiklomelo-kadakamela-cultural-festival/88c66c3f-655a-41bc-8d89-1c4e5761cbaf" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                >
+                  <Button size="lg" variant="outline" className="w-full sm:w-auto gap-2 border-amber-400/50 text-white hover:bg-white/10" data-testid="hero-button-zimtickets">
+                    <Ticket className="w-4 h-4" />
+                    Buy on ZimTickets
+                  </Button>
+                </a>
                 <Link href="/event">
                   <Button size="lg" variant="outline" className="w-full sm:w-auto border-amber-400/50 text-white hover:bg-white/10" data-testid="hero-button-learn-more">
                     Learn More

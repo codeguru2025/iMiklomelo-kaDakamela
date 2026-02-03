@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { 
   Calendar, MapPin, Clock, Users, Award, Tent, Utensils, Music, 
-  Camera, Shield, Car, ArrowRight, CheckCircle2, Crown
+  Camera, Shield, Car, ArrowRight, CheckCircle2, Crown, Ticket
 } from "lucide-react";
 import logoImage from "@assets/DK_LOGO_1769944557082.png";
 import awardCeremony1 from "@assets/IMG_0730_1770114288427.jpg";
@@ -312,13 +312,23 @@ export default function Event() {
             Register now to secure your place at Imiklomelo Ka Dakamela 2026. 
             Accommodation spaces are limited.
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center flex-wrap">
             <Link href="/register">
               <Button size="lg" className="w-full sm:w-auto gap-2 bg-amber-500 hover:bg-amber-600 text-amber-950">
                 Register Now
                 <ArrowRight className="w-4 h-4" />
               </Button>
             </Link>
+            <a 
+              href="https://www.zimtickets.com/event/imiklomelo-kadakamela-cultural-festival/88c66c3f-655a-41bc-8d89-1c4e5761cbaf" 
+              target="_blank" 
+              rel="noopener noreferrer"
+            >
+              <Button size="lg" variant="outline" className="w-full sm:w-auto gap-2 border-amber-400/50 text-white hover:bg-white/10" data-testid="event-button-zimtickets">
+                <Ticket className="w-4 h-4" />
+                Buy on ZimTickets
+              </Button>
+            </a>
             <Link href="/accommodation">
               <Button size="lg" variant="outline" className="w-full sm:w-auto border-amber-400/50 text-white hover:bg-white/10">
                 View Accommodation
