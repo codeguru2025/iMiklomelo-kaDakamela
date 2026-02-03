@@ -61,19 +61,21 @@ export default function Home() {
         <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/60 to-black/40" />
         
         <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-2 z-10">
-          {heroImages.map((_, index) => (
-            <button
-              key={index}
-              onClick={() => setCurrentImageIndex(index)}
-              className={`w-2 h-2 rounded-full transition-all ${
-                index === currentImageIndex
-                  ? "bg-amber-400 w-6"
-                  : "bg-white/50 hover:bg-white/80"
-              }`}
-              aria-label={`Go to slide ${index + 1}`}
-              data-testid={`carousel-dot-${index}`}
-            />
-          ))}
+          {heroImages.map((_, index) => {
+            const isActive = index === currentImageIndex;
+            return (
+              <button
+                key={`dot-${index}`}
+                onClick={() => setCurrentImageIndex(index)}
+                className={isActive 
+                  ? "h-2 w-6 rounded-full transition-all bg-amber-400"
+                  : "h-2 w-2 rounded-full transition-all bg-white/50"
+                }
+                aria-label={`Go to slide ${index + 1}`}
+                data-testid={`carousel-dot-${index}`}
+              />
+            );
+          })}
         </div>
         
         <div className="container relative mx-auto px-4 py-24 md:py-32 lg:py-40">
