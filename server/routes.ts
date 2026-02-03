@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { 
   insertAttendeeSchema, insertCompanySchema, insertReservationSchema,
-  insertAnnouncementSchema
+  insertAnnouncementSchema, type Payment
 } from "@shared/schema";
 import { z } from "zod";
 import { initializePayment, checkPaymentStatus, isPaymentComplete, verifyPaynowHash } from "./paynow";
@@ -543,6 +543,177 @@ export async function registerRoutes(
       });
     } catch (error) {
       res.status(500).json({ error: "Failed to scan ticket" });
+    }
+  });
+
+  // Lookup ticket with full details for scanner
+  app.get("/api/tickets/lookup/:code", async (req, res) => {
+    try {
+      const ticket = await storage.getTicketByCode(req.params.code);
+      if (!ticket) {
+        res.status(404).json({ error: "Ticket not found" });
+        return;
+      }
+
+      const attendee = await storage.getAttendee(ticket.attendeeId);
+      if (!attendee) {
+        res.status(404).json({ error: "Attendee not found" });
+        return;
+      }
+
+      let reservation = null;
+      if (ticket.reservationId) {
+        reservation = await storage.getReservation(ticket.reservationId);
+      }
+
+      res.json({
+        ticket: {
+          id: ticket.id,
+          ticketCode: ticket.ticketCode,
+          status: ticket.status,
+          attendanceType: ticket.attendanceType,
+          campDetails: ticket.campDetails,
+          selectedServices: ticket.selectedServices,
+          usedAt: ticket.scannedAt,
+        },
+        attendee: {
+          id: attendee.id,
+          fullName: attendee.fullName,
+          email: attendee.email,
+          phone: attendee.phone,
+          attendanceType: attendee.attendanceType,
+          needsAccommodation: attendee.needsAccommodation,
+        },
+        reservation: reservation ? {
+          id: reservation.id,
+          campId: reservation.campId,
+          checkIn: reservation.checkIn,
+          checkOut: reservation.checkOut,
+          depositStatus: reservation.depositStatus,
+        } : null,
+      });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to lookup ticket" });
+    }
+  });
+
+  // Mark ticket as used (alternative endpoint)
+  app.post("/api/tickets/:id/mark-used", async (req, res) => {
+    try {
+      const ticket = await storage.getTicket(req.params.id);
+      if (!ticket) {
+        res.status(404).json({ error: "Ticket not found" });
+        return;
+      }
+
+      if (ticket.status !== "valid") {
+        res.status(400).json({ error: `Ticket is already ${ticket.status}` });
+        return;
+      }
+
+      const updated = await storage.updateTicket(req.params.id, {
+        status: "used",
+        scannedAt: new Date(),
+      });
+
+      res.json(updated);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to mark ticket as used" });
+    }
+  });
+
+  // Get recent scans for admin
+  app.get("/api/admin/tickets/recent-scans", async (req, res) => {
+    try {
+      const tickets = await storage.getRecentScannedTickets(10);
+      const results = await Promise.all(tickets.map(async (ticket) => {
+        const attendee = await storage.getAttendee(ticket.attendeeId);
+        return {
+          ticket: {
+            id: ticket.id,
+            ticketCode: ticket.ticketCode,
+            status: ticket.status,
+            usedAt: ticket.scannedAt,
+          },
+          attendee: attendee ? {
+            id: attendee.id,
+            fullName: attendee.fullName,
+            email: attendee.email,
+          } : null,
+        };
+      }));
+      res.json(results);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch recent scans" });
+    }
+  });
+
+  // Payment status lookup for attendees
+  app.get("/api/payment-status", async (req, res) => {
+    try {
+      const query = req.query.q as string;
+      if (!query) {
+        res.status(400).json({ error: "Search query required" });
+        return;
+      }
+
+      const attendee = await storage.getAttendeeByEmailOrPhone(query);
+      if (!attendee) {
+        res.status(404).json({ error: "No booking found with that email or phone number" });
+        return;
+      }
+
+      const ticket = await storage.getTicketByAttendee(attendee.id);
+      const reservation = attendee.needsAccommodation 
+        ? await storage.getReservationByAttendee(attendee.id) 
+        : null;
+      
+      let campName = "";
+      if (reservation) {
+        const camp = await storage.getCamp(reservation.campId);
+        campName = camp?.name || "Unknown Camp";
+      }
+
+      const payments = await storage.getPaymentsByAttendee(attendee.id);
+
+      res.json({
+        attendee: {
+          id: attendee.id,
+          fullName: attendee.fullName,
+          email: attendee.email,
+          phone: attendee.phone,
+          attendanceType: attendee.attendanceType,
+          needsAccommodation: attendee.needsAccommodation,
+          registeredAt: attendee.createdAt,
+        },
+        ticket: ticket ? {
+          ticketCode: ticket.ticketCode,
+          status: ticket.status,
+        } : null,
+        reservation: reservation ? {
+          id: reservation.id,
+          campId: reservation.campId,
+          campName,
+          checkIn: reservation.checkIn,
+          checkOut: reservation.checkOut,
+          totalAmount: reservation.totalAmount,
+          depositAmount: reservation.depositAmount,
+          depositStatus: reservation.depositStatus,
+          depositDeadline: reservation.expiresAt,
+          selectedServices: reservation.selectedServices,
+        } : null,
+        payments: payments.map((p: Payment) => ({
+          id: p.id,
+          amount: p.amount,
+          status: p.status,
+          paymentMethod: p.paymentMethod || "unknown",
+          createdAt: p.createdAt,
+          completedAt: p.paidAt,
+        })),
+      });
+    } catch (error) {
+      console.error("Payment status lookup error:", error);
+      res.status(500).json({ error: "Failed to lookup payment status" });
     }
   });
 

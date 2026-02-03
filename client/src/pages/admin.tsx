@@ -16,12 +16,16 @@ import {
   Users, Tent, Building2, Award, Bell, Settings, Shield, 
   CheckCircle, XCircle, Clock, Plus, RefreshCw, Eye,
   BarChart3, Download, DollarSign, TrendingUp, UserCheck,
-  Globe, MapPin, Calendar
+  Globe, MapPin, Calendar, ScanLine
 } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Attendee, Reservation, Company, Announcement } from "@shared/schema";
+import { 
+  PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, 
+  Tooltip, ResponsiveContainer, Legend 
+} from "recharts";
 
 interface Analytics {
   totalAttendees: number;
@@ -43,6 +47,8 @@ interface Analytics {
     booked: number;
   }>;
 }
+
+const CHART_COLORS = ["#f97316", "#eab308", "#22c55e", "#3b82f6", "#a855f7", "#ec4899", "#6366f1", "#14b8a6"];
 
 const genderLabels: Record<string, string> = {
   male: "Male",
@@ -216,41 +222,37 @@ export default function Admin() {
                 <CardHeader>
                   <CardTitle className="text-lg flex items-center gap-2">
                     <UserCheck className="w-5 h-5 text-primary" />
-                    Attendee Demographics
+                    Gender Distribution
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent>
                   {analyticsLoading ? (
-                    <Skeleton className="h-32 w-full" />
-                  ) : analytics?.demographics ? (
-                    <>
-                      <div className="space-y-2">
-                        <div className="flex justify-between text-sm">
-                          <span>First-time Attendees</span>
-                          <span className="font-semibold">{analytics.demographics.firstTimeAttendees}</span>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                          <span>Returning Attendees</span>
-                          <span className="font-semibold">{analytics.demographics.returningAttendees}</span>
-                        </div>
-                      </div>
-                      
-                      <Separator />
-                      
-                      <div>
-                        <h4 className="text-sm font-medium mb-2">By Gender</h4>
-                        <div className="space-y-1">
-                          {Object.entries(analytics.demographics.byGender || {}).map(([gender, count]) => (
-                            <div key={gender} className="flex justify-between text-sm">
-                              <span className="text-muted-foreground">{genderLabels[gender] || gender}</span>
-                              <span>{count}</span>
-                            </div>
+                    <Skeleton className="h-48 w-full" />
+                  ) : analytics?.demographics?.byGender && Object.keys(analytics.demographics.byGender).length > 0 ? (
+                    <ResponsiveContainer width="100%" height={200}>
+                      <PieChart>
+                        <Pie
+                          data={Object.entries(analytics.demographics.byGender).map(([name, value]) => ({
+                            name: genderLabels[name] || name,
+                            value
+                          }))}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={40}
+                          outerRadius={70}
+                          paddingAngle={2}
+                          dataKey="value"
+                        >
+                          {Object.keys(analytics.demographics.byGender).map((_, index) => (
+                            <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
                           ))}
-                        </div>
-                      </div>
-                    </>
+                        </Pie>
+                        <Tooltip />
+                        <Legend />
+                      </PieChart>
+                    </ResponsiveContainer>
                   ) : (
-                    <p className="text-muted-foreground text-sm">No demographic data yet</p>
+                    <p className="text-muted-foreground text-sm">No gender data yet</p>
                   )}
                 </CardContent>
               </Card>
@@ -295,28 +297,28 @@ export default function Admin() {
                 </CardHeader>
                 <CardContent>
                   {analyticsLoading ? (
-                    <Skeleton className="h-32 w-full" />
-                  ) : analytics?.demographics?.byAgeRange ? (
-                    <div className="space-y-2">
-                      {Object.entries(analytics.demographics.byAgeRange)
-                        .sort((a, b) => {
-                          const order = ["under_18", "18_24", "25_34", "35_44", "45_54", "55_64", "65_plus"];
-                          return order.indexOf(a[0]) - order.indexOf(b[0]);
-                        })
-                        .map(([age, count]) => {
-                          const total = Object.values(analytics.demographics.byAgeRange).reduce((a, b) => a + b, 0);
-                          const percentage = total > 0 ? (count / total) * 100 : 0;
-                          return (
-                            <div key={age} className="space-y-1">
-                              <div className="flex justify-between text-sm">
-                                <span>{ageRangeLabels[age] || age}</span>
-                                <span>{count}</span>
-                              </div>
-                              <Progress value={percentage} className="h-2" />
-                            </div>
-                          );
-                        })}
-                    </div>
+                    <Skeleton className="h-48 w-full" />
+                  ) : analytics?.demographics?.byAgeRange && Object.keys(analytics.demographics.byAgeRange).length > 0 ? (
+                    <ResponsiveContainer width="100%" height={200}>
+                      <BarChart
+                        data={Object.entries(analytics.demographics.byAgeRange)
+                          .sort((a, b) => {
+                            const order = ["under_18", "18_24", "25_34", "35_44", "45_54", "55_64", "65_plus"];
+                            return order.indexOf(a[0]) - order.indexOf(b[0]);
+                          })
+                          .map(([age, count]) => ({
+                            name: ageRangeLabels[age] || age,
+                            count
+                          }))}
+                        margin={{ top: 5, right: 5, left: -20, bottom: 5 }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" className="opacity-50" />
+                        <XAxis dataKey="name" tick={{ fontSize: 10 }} />
+                        <YAxis tick={{ fontSize: 10 }} />
+                        <Tooltip />
+                        <Bar dataKey="count" fill="#f97316" radius={[4, 4, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
                   ) : (
                     <p className="text-muted-foreground text-sm">No age data yet</p>
                   )}

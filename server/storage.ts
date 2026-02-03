@@ -9,7 +9,7 @@ import {
   type Announcement, type InsertAnnouncement, type Ticket, type InsertTicket
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, or } from "drizzle-orm";
 
 export interface IStorage {
   // Users
@@ -75,8 +75,14 @@ export interface IStorage {
   getTicket(id: string): Promise<Ticket | undefined>;
   getTicketByCode(ticketCode: string): Promise<Ticket | undefined>;
   getTicketByAttendee(attendeeId: string): Promise<Ticket | undefined>;
+  getRecentScannedTickets(limit: number): Promise<Ticket[]>;
   createTicket(ticket: InsertTicket): Promise<Ticket>;
   updateTicket(id: string, data: Partial<Ticket>): Promise<Ticket | undefined>;
+
+  // Additional lookup methods
+  getAttendeeByEmailOrPhone(query: string): Promise<Attendee | undefined>;
+  getReservationByAttendee(attendeeId: string): Promise<Reservation | undefined>;
+  getPaymentsByAttendee(attendeeId: string): Promise<Payment[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -287,6 +293,37 @@ export class DatabaseStorage implements IStorage {
   async updateTicket(id: string, data: Partial<Ticket>): Promise<Ticket | undefined> {
     const [updated] = await db.update(tickets).set(data).where(eq(tickets.id, id)).returning();
     return updated;
+  }
+
+  async getRecentScannedTickets(limit: number): Promise<Ticket[]> {
+    return await db.select().from(tickets)
+      .where(eq(tickets.status, "used"))
+      .orderBy(desc(tickets.scannedAt))
+      .limit(limit);
+  }
+
+  async getAttendeeByEmailOrPhone(query: string): Promise<Attendee | undefined> {
+    const normalizedQuery = query.toLowerCase().trim();
+    const [attendee] = await db.select().from(attendees)
+      .where(
+        or(
+          eq(attendees.email, normalizedQuery),
+          eq(attendees.phone, query.trim())
+        )
+      );
+    return attendee;
+  }
+
+  async getReservationByAttendee(attendeeId: string): Promise<Reservation | undefined> {
+    const [reservation] = await db.select().from(reservations)
+      .where(eq(reservations.attendeeId, attendeeId));
+    return reservation;
+  }
+
+  async getPaymentsByAttendee(attendeeId: string): Promise<Payment[]> {
+    return await db.select().from(payments)
+      .where(eq(payments.attendeeId, attendeeId))
+      .orderBy(desc(payments.createdAt));
   }
 }
 
