@@ -1,3 +1,4 @@
+import { useState, useRef } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,7 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Building2, Loader2, CheckCircle2, Palette, Shirt, UtensilsCrossed, Handshake, Wrench } from "lucide-react";
+import { Building2, Loader2, CheckCircle2, Palette, Shirt, UtensilsCrossed, Handshake, Wrench, Upload, X, Image as ImageIcon } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { z } from "zod";
@@ -20,6 +21,7 @@ const companySchema = z.object({
   contactEmail: z.string().email("Please enter a valid email"),
   contactPhone: z.string().optional(),
   website: z.string().url().optional().or(z.literal("")),
+  logoUrl: z.string().optional(),
   role: z.enum(["exhibitor", "sponsor", "both"]),
   exhibitionCategory: z.enum(["art", "fashion", "food", "cultural_crafts", "services"]).optional(),
   sponsorshipTier: z.string().optional(),
@@ -45,6 +47,49 @@ const sponsorshipTiers = [
 export default function Apply() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
+  const [logoUrl, setLogoUrl] = useState("");
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+  const logoInputRef = useRef<HTMLInputElement>(null);
+
+  const handleLogoUpload = async (file: File) => {
+    if (!file.type.startsWith("image/")) {
+      toast({ title: "Please upload an image file", variant: "destructive" });
+      return;
+    }
+    
+    setIsUploadingLogo(true);
+    
+    try {
+      const response = await fetch("/api/uploads/request-url", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: file.name,
+          size: file.size,
+          contentType: file.type,
+        }),
+      });
+      
+      if (!response.ok) throw new Error("Failed to get upload URL");
+      
+      const { uploadURL, objectPath } = await response.json();
+      
+      await fetch(uploadURL, {
+        method: "PUT",
+        body: file,
+        headers: { "Content-Type": file.type },
+      });
+      
+      setLogoUrl(objectPath);
+      form.setValue("logoUrl", objectPath);
+      toast({ title: "Logo uploaded successfully" });
+    } catch (error) {
+      console.error("Upload failed:", error);
+      toast({ title: "Logo upload failed", variant: "destructive" });
+    } finally {
+      setIsUploadingLogo(false);
+    }
+  };
 
   const form = useForm<CompanyForm>({
     resolver: zodResolver(companySchema),
@@ -54,6 +99,7 @@ export default function Apply() {
       contactEmail: "",
       contactPhone: "",
       website: "",
+      logoUrl: "",
       role: "exhibitor",
     },
   });
@@ -145,6 +191,58 @@ export default function Apply() {
                       </FormItem>
                     )}
                   />
+
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">Company Logo</label>
+                    <div 
+                      className="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer hover-elevate transition-colors"
+                      onClick={() => logoInputRef.current?.click()}
+                      data-testid="upload-logo-area"
+                    >
+                      <input 
+                        ref={logoInputRef}
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) handleLogoUpload(file);
+                        }}
+                        data-testid="input-logo-upload"
+                      />
+                      {logoUrl ? (
+                        <div className="relative inline-block">
+                          <img 
+                            src={logoUrl} 
+                            alt="Logo preview" 
+                            className="w-24 h-24 object-contain mx-auto rounded-lg"
+                          />
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setLogoUrl("");
+                              form.setValue("logoUrl", "");
+                            }}
+                            className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-1"
+                            data-testid="button-remove-logo"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ) : (
+                        <>
+                          <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
+                          <p className="text-sm text-muted-foreground">
+                            {isUploadingLogo ? "Uploading..." : "Click to upload your logo"}
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Your logo will be displayed on the sponsors page
+                          </p>
+                        </>
+                      )}
+                    </div>
+                  </div>
 
                   <div className="grid sm:grid-cols-2 gap-4">
                     <FormField
