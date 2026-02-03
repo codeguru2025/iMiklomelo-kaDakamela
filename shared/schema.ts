@@ -193,6 +193,14 @@ export const insertReservationSchema = createInsertSchema(reservations).omit({ i
 export const insertPaymentSchema = createInsertSchema(payments).omit({ id: true, createdAt: true });
 export const insertCompanySchema = createInsertSchema(companies).omit({ id: true, createdAt: true });
 export const insertPastEventSchema = createInsertSchema(pastEvents).omit({ id: true, createdAt: true });
+export const updatePastEventSchema = z.object({
+  year: z.number().int().optional(),
+  edition: z.string().optional(),
+  title: z.string().optional(),
+  summary: z.string().optional(),
+  description: z.string().optional(),
+  imageUrl: z.string().nullable().optional(),
+}).strict();
 export const insertAwardeeSchema = createInsertSchema(awardees).omit({ id: true, createdAt: true });
 export const insertMediaAssetSchema = createInsertSchema(mediaAssets).omit({ id: true, createdAt: true });
 export const insertAnnouncementSchema = createInsertSchema(announcements).omit({ id: true, createdAt: true });

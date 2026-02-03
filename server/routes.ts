@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { 
   insertAttendeeSchema, insertCompanySchema, insertReservationSchema,
-  insertAnnouncementSchema, type Payment
+  insertAnnouncementSchema, insertPastEventSchema, updatePastEventSchema, type Payment
 } from "@shared/schema";
 import { z } from "zod";
 import { initializePayment, checkPaymentStatus, isPaymentComplete, verifyPaynowHash } from "./paynow";
@@ -248,6 +248,50 @@ export async function registerRoutes(
       res.json({ ...event, awardees });
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch event" });
+    }
+  });
+
+  // Create past event (admin)
+  app.post("/api/past-events", async (req, res) => {
+    if (!isAdminRequest(req)) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+    try {
+      const data = insertPastEventSchema.parse(req.body);
+      const event = await storage.createPastEvent(data);
+      res.status(201).json(event);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ error: "Invalid data", details: error.errors });
+        return;
+      }
+      console.error("Failed to create past event:", error);
+      res.status(500).json({ error: "Failed to create past event" });
+    }
+  });
+
+  // Update past event (admin)
+  app.patch("/api/past-events/:id", async (req, res) => {
+    if (!isAdminRequest(req)) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+    try {
+      const data = updatePastEventSchema.parse(req.body);
+      const event = await storage.updatePastEvent(req.params.id, data);
+      if (!event) {
+        res.status(404).json({ error: "Event not found" });
+        return;
+      }
+      res.json(event);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ error: "Invalid data", details: error.errors });
+        return;
+      }
+      console.error("Failed to update past event:", error);
+      res.status(500).json({ error: "Failed to update past event" });
     }
   });
 

@@ -55,6 +55,7 @@ export interface IStorage {
   getPastEvents(): Promise<PastEvent[]>;
   getPastEvent(id: string): Promise<PastEvent | undefined>;
   createPastEvent(event: InsertPastEvent): Promise<PastEvent>;
+  updatePastEvent(id: string, data: { year?: number; edition?: string; title?: string; summary?: string; description?: string; imageUrl?: string | null }): Promise<PastEvent | undefined>;
 
   // Awardees
   getAwardees(): Promise<Awardee[]>;
@@ -225,6 +226,11 @@ export class DatabaseStorage implements IStorage {
   async createPastEvent(event: InsertPastEvent): Promise<PastEvent> {
     const [created] = await db.insert(pastEvents).values(event).returning();
     return created;
+  }
+
+  async updatePastEvent(id: string, data: { year?: number; edition?: string; title?: string; summary?: string; description?: string; imageUrl?: string | null }): Promise<PastEvent | undefined> {
+    const [updated] = await db.update(pastEvents).set(data).where(eq(pastEvents.id, id)).returning();
+    return updated;
   }
 
   // Awardees

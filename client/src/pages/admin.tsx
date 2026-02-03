@@ -21,7 +21,8 @@ import {
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { Attendee, Reservation, Company, Announcement } from "@shared/schema";
+import type { Attendee, Reservation, Company, Announcement, PastEvent } from "@shared/schema";
+import { Image as ImageIcon } from "lucide-react";
 import { 
   PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, 
   Tooltip, ResponsiveContainer, Legend 
@@ -67,9 +68,69 @@ const ageRangeLabels: Record<string, string> = {
   "65_plus": "65+",
 };
 
+function ImageUpdateDialog({ event, onUpdate, isPending }: { 
+  event: PastEvent; 
+  onUpdate: (id: string, imageUrl: string) => void;
+  isPending: boolean;
+}) {
+  const [imageUrl, setImageUrl] = useState(event.imageUrl || "");
+  
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button variant="outline" size="sm" className="w-full gap-2">
+          <ImageIcon className="w-4 h-4" />
+          {event.imageUrl ? "Update Image" : "Add Image"}
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Update Event Image</DialogTitle>
+          <DialogDescription>
+            Add or change the image for {event.title}
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div>
+            <Label>Image URL</Label>
+            <Input 
+              value={imageUrl}
+              onChange={(e) => setImageUrl(e.target.value)}
+              placeholder="https://example.com/image.jpg"
+              data-testid={`input-update-image-${event.id}`}
+            />
+          </div>
+          {imageUrl && (
+            <div className="rounded-lg overflow-hidden">
+              <img src={imageUrl} alt="Preview" className="w-full h-32 object-cover" />
+            </div>
+          )}
+        </div>
+        <DialogFooter>
+          <Button 
+            onClick={() => onUpdate(event.id, imageUrl)}
+            disabled={isPending}
+            data-testid={`button-save-image-${event.id}`}
+          >
+            Save Image
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export default function Admin() {
   const { toast } = useToast();
   const [newAnnouncement, setNewAnnouncement] = useState({ title: "", content: "" });
+  const [newPastEvent, setNewPastEvent] = useState({ 
+    year: new Date().getFullYear(), 
+    title: "", 
+    summary: "", 
+    description: "",
+    edition: "",
+    imageUrl: "" 
+  });
 
   const { data: attendees, isLoading: attendeesLoading } = useQuery<Attendee[]>({
     queryKey: ["/api/attendees"],
@@ -89,6 +150,10 @@ export default function Admin() {
 
   const { data: analytics, isLoading: analyticsLoading } = useQuery<Analytics>({
     queryKey: ["/api/admin/analytics"],
+  });
+
+  const { data: pastEvents, isLoading: pastEventsLoading } = useQuery<PastEvent[]>({
+    queryKey: ["/api/past-events"],
   });
 
   const updateCompanyStatus = useMutation({
@@ -128,6 +193,33 @@ export default function Admin() {
     },
     onError: (error: Error) => {
       toast({ title: "Failed to create announcement", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const createPastEvent = useMutation({
+    mutationFn: async (data: typeof newPastEvent) => {
+      return apiRequest("POST", "/api/past-events", data);
+    },
+    onSuccess: () => {
+      toast({ title: "Past event created" });
+      queryClient.invalidateQueries({ queryKey: ["/api/past-events"] });
+      setNewPastEvent({ year: new Date().getFullYear(), title: "", summary: "", description: "", edition: "", imageUrl: "" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Failed to create past event", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const updatePastEventImage = useMutation({
+    mutationFn: async ({ id, imageUrl }: { id: string; imageUrl: string }) => {
+      return apiRequest("PATCH", `/api/past-events/${id}`, { imageUrl });
+    },
+    onSuccess: () => {
+      toast({ title: "Image updated" });
+      queryClient.invalidateQueries({ queryKey: ["/api/past-events"] });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Failed to update image", description: error.message, variant: "destructive" });
     },
   });
 
@@ -189,7 +281,7 @@ export default function Admin() {
         </div>
 
         <Tabs defaultValue="analytics" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-6 max-w-3xl">
+          <TabsList className="grid w-full grid-cols-7 max-w-4xl">
             <TabsTrigger value="analytics" data-testid="tab-analytics">
               <BarChart3 className="w-4 h-4 mr-2" />
               Analytics
@@ -205,6 +297,10 @@ export default function Admin() {
             <TabsTrigger value="companies" data-testid="tab-companies">
               <Building2 className="w-4 h-4 mr-2" />
               Applications
+            </TabsTrigger>
+            <TabsTrigger value="heritage" data-testid="tab-heritage">
+              <Award className="w-4 h-4 mr-2" />
+              Heritage
             </TabsTrigger>
             <TabsTrigger value="announcements" data-testid="tab-announcements">
               <Bell className="w-4 h-4 mr-2" />
@@ -610,6 +706,147 @@ export default function Admin() {
                 ) : (
                   <div className="text-center py-8 text-muted-foreground">
                     No applications yet.
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="heritage">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between gap-4">
+                <div>
+                  <CardTitle>Heritage Archive</CardTitle>
+                  <CardDescription>Manage past events and add images to the gallery</CardDescription>
+                </div>
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button size="sm" data-testid="button-new-past-event">
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add Past Event
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-lg">
+                    <DialogHeader>
+                      <DialogTitle>Add Past Event</DialogTitle>
+                      <DialogDescription>
+                        Add a past event to the Heritage Archive.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label>Year</Label>
+                          <Input 
+                            type="number"
+                            value={newPastEvent.year}
+                            onChange={(e) => setNewPastEvent(prev => ({ ...prev, year: parseInt(e.target.value) }))}
+                            placeholder="2025"
+                            data-testid="input-event-year"
+                          />
+                        </div>
+                        <div>
+                          <Label>Edition</Label>
+                          <Input 
+                            value={newPastEvent.edition}
+                            onChange={(e) => setNewPastEvent(prev => ({ ...prev, edition: e.target.value }))}
+                            placeholder="e.g. 5th Edition"
+                            data-testid="input-event-edition"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <Label>Title</Label>
+                        <Input 
+                          value={newPastEvent.title}
+                          onChange={(e) => setNewPastEvent(prev => ({ ...prev, title: e.target.value }))}
+                          placeholder="Event title"
+                          data-testid="input-event-title"
+                        />
+                      </div>
+                      <div>
+                        <Label>Summary</Label>
+                        <Input 
+                          value={newPastEvent.summary}
+                          onChange={(e) => setNewPastEvent(prev => ({ ...prev, summary: e.target.value }))}
+                          placeholder="Short summary"
+                          data-testid="input-event-summary"
+                        />
+                      </div>
+                      <div>
+                        <Label>Description</Label>
+                        <Textarea 
+                          value={newPastEvent.description}
+                          onChange={(e) => setNewPastEvent(prev => ({ ...prev, description: e.target.value }))}
+                          placeholder="Full description"
+                          data-testid="input-event-description"
+                        />
+                      </div>
+                      <div>
+                        <Label className="flex items-center gap-2">
+                          <ImageIcon className="w-4 h-4" />
+                          Image URL
+                        </Label>
+                        <Input 
+                          value={newPastEvent.imageUrl}
+                          onChange={(e) => setNewPastEvent(prev => ({ ...prev, imageUrl: e.target.value }))}
+                          placeholder="https://example.com/image.jpg"
+                          data-testid="input-event-image"
+                        />
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Paste a link to an image (external URL or uploaded to a hosting service)
+                        </p>
+                      </div>
+                    </div>
+                    <DialogFooter>
+                      <Button 
+                        onClick={() => createPastEvent.mutate(newPastEvent)}
+                        disabled={createPastEvent.isPending || !newPastEvent.title || !newPastEvent.year}
+                        data-testid="button-create-event"
+                      >
+                        {createPastEvent.isPending ? "Creating..." : "Create Event"}
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              </CardHeader>
+              <CardContent>
+                {pastEventsLoading ? (
+                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {[1, 2, 3].map(i => <Skeleton key={i} className="h-48" />)}
+                  </div>
+                ) : pastEvents && pastEvents.length > 0 ? (
+                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {pastEvents.map((event) => (
+                      <Card key={event.id} className="overflow-hidden" data-testid={`card-heritage-${event.id}`}>
+                        <div className="aspect-video bg-gradient-to-br from-amber-600 to-orange-700 relative">
+                          {event.imageUrl ? (
+                            <img src={event.imageUrl} alt={event.title} className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="absolute inset-0 flex items-center justify-center">
+                              <span className="font-serif text-4xl font-bold text-white/90">{event.year}</span>
+                            </div>
+                          )}
+                          <Badge className="absolute top-2 right-2 bg-black/50">{event.year}</Badge>
+                        </div>
+                        <CardHeader className="p-4">
+                          <CardTitle className="text-base">{event.title}</CardTitle>
+                          <CardDescription className="text-xs line-clamp-2">{event.summary}</CardDescription>
+                        </CardHeader>
+                        <CardContent className="p-4 pt-0">
+                          <ImageUpdateDialog 
+                            event={event}
+                            onUpdate={(id, imageUrl) => updatePastEventImage.mutate({ id, imageUrl })}
+                            isPending={updatePastEventImage.isPending}
+                          />
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Award className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                    <p>No past events yet. Add your first event to build the heritage archive.</p>
                   </div>
                 )}
               </CardContent>
