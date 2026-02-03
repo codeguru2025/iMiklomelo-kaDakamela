@@ -148,3 +148,26 @@ New demographic fields collected from all attendees:
 - **manifest.json**: Mobile app installation support
 - **Service worker**: Offline caching for core pages
 - **Apple-specific meta tags**: iOS home screen support
+
+### Live Streaming Feature
+- **Price**: $15 USD for full event access
+- **Payment**: Paynow integration with access code generation
+- **Access Verification**: Access codes validate against database records
+- **Video Player**: Supports HLS/DASH stream URLs configured by admin
+- **Pages**:
+  - `/live-stream` - Payment gate, access verification, and video player
+  - `/video-feed` - Community video posts (1-min max, event days only)
+- **Admin Controls** (Streaming tab in admin dashboard):
+  - Stream settings: URL, title, price, isLive toggle, allowVideoFeed toggle
+  - Video post moderation: approve/reject user submissions
+  - Recordings library: add/delete past event recordings
+  - Stream stats: subscriber count and revenue tracking
+- **API Routes**:
+  - GET /api/stream/settings - Public stream settings
+  - POST /api/stream/verify-access - Verify access code
+  - POST /api/stream/purchase - Purchase stream access
+  - GET/PUT /api/admin/stream-settings - Admin stream settings
+  - GET /api/admin/video-posts - All video posts (admin)
+  - PUT /api/admin/video-posts/:id/moderate - Moderate video post
+  - POST/DELETE /api/admin/recordings - Manage recordings
+  - GET /api/admin/stream-stats - Streaming analytics
