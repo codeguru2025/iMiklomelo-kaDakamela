@@ -12,6 +12,11 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { PastEvent, Awardee, Company } from "@shared/schema";
+import eventImage1 from "@assets/IMG_0731_1770114288427.jpg";
+import eventImage2 from "@assets/IMG_0727_1770114288428.jpg";
+import eventImage3 from "@assets/IMG_0725_(1)_1770114288429.jpg";
+
+const defaultEventImages = [eventImage1, eventImage2, eventImage3];
 
 interface PastEventWithDetails extends PastEvent {
   awardees?: Awardee[];
@@ -67,7 +72,7 @@ export default function PastEvents() {
             </div>
           ) : pastEvents && pastEvents.length > 0 ? (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {pastEvents.map((event) => (
+              {pastEvents.map((event, index) => (
                 <Dialog key={event.id}>
                   <DialogTrigger asChild>
                     <Card 
@@ -76,18 +81,17 @@ export default function PastEvents() {
                       data-testid={`card-past-event-${event.id}`}
                     >
                       <div className="aspect-video bg-gradient-to-br from-amber-600 to-orange-700 relative flex items-center justify-center">
-                        {event.imageUrl ? (
-                          <img 
-                            src={event.imageUrl} 
-                            alt={event.title} 
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <span className="font-serif text-5xl font-bold text-white/90">{event.year}</span>
-                        )}
+                        <img 
+                          src={event.imageUrl || defaultEventImages[index % defaultEventImages.length]} 
+                          alt={event.title} 
+                          className="w-full h-full object-cover"
+                        />
                         <Badge className="absolute top-3 left-3 bg-black/50 text-white border-0">
                           {event.edition || `Edition ${event.year}`}
                         </Badge>
+                        <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/70 to-transparent">
+                          <span className="font-serif text-2xl font-bold text-white">{event.year}</span>
+                        </div>
                       </div>
                       
                       <CardHeader>

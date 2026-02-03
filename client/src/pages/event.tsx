@@ -7,6 +7,9 @@ import {
   Camera, Shield, Car, ArrowRight, CheckCircle2, Crown
 } from "lucide-react";
 import logoImage from "@assets/DK_LOGO_1769944557082.png";
+import awardCeremony1 from "@assets/IMG_0730_1770114288427.jpg";
+import awardCeremony2 from "@assets/IMG_0729_1770114288428.jpg";
+import awardCeremony3 from "@assets/IMG_0728_1770114288428.jpg";
 
 const schedule = [
   { 
@@ -130,8 +133,31 @@ export default function Event() {
 
             <div className="relative">
               <div className="absolute inset-0 bg-gradient-to-br from-amber-400/10 to-orange-500/10 rounded-2xl blur-2xl" />
-              <div className="relative aspect-square rounded-2xl bg-gradient-to-br from-amber-600 to-orange-700 p-8 flex items-center justify-center">
-                <img src={logoImage} alt="Chief Dakamela Logo" className="w-full max-w-xs drop-shadow-2xl" />
+              <div className="grid grid-cols-1 gap-4">
+                <div className="relative aspect-video rounded-2xl overflow-hidden">
+                  <img 
+                    src={awardCeremony1} 
+                    alt="Award ceremony with Chief Dakamela" 
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="relative aspect-[4/3] rounded-xl overflow-hidden">
+                    <img 
+                      src={awardCeremony2} 
+                      alt="Certificate presentation" 
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <div className="relative aspect-[4/3] rounded-xl overflow-hidden">
+                    <img 
+                      src={awardCeremony3} 
+                      alt="Cultural celebration" 
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                </div>
               </div>
             </div>
           </div>

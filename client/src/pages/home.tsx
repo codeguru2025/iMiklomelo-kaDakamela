@@ -7,6 +7,10 @@ import { useQuery } from "@tanstack/react-query";
 import type { Announcement, Company, PastEvent } from "@shared/schema";
 import logoImage from "@assets/DK_LOGO_1769944557082.png";
 import kingdomBlueLogo from "@assets/kbf_logo_1770113825582.png";
+import eventImage1 from "@assets/IMG_0740_1770114288425.jpg";
+import eventImage2 from "@assets/IMG_0739_1770114288425.jpg";
+import eventImage3 from "@assets/IMG_0738_1770114288426.jpg";
+import eventImage4 from "@assets/IMG_0732_1770114288426.jpg";
 
 export default function Home() {
   const { data: announcements } = useQuery<Announcement[]>({
@@ -188,6 +192,80 @@ export default function Home() {
             <Link href="/event">
               <Button variant="outline" className="gap-2" data-testid="button-view-event-details">
                 View Full Event Details
+                <ArrowRight className="w-4 h-4" />
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Photo Gallery Section */}
+      <section className="py-20 bg-card">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-12">
+            <Badge variant="outline" className="mb-4">
+              <Award className="w-3 h-3 mr-1" />
+              Ceremony Highlights
+            </Badge>
+            <h2 className="font-serif text-3xl md:text-4xl font-bold mb-4">
+              Moments of Excellence
+            </h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto">
+              Witness the Chief conferring awards upon deserving achievers in our community.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="relative aspect-[4/3] rounded-xl overflow-hidden group">
+              <img 
+                src={eventImage1} 
+                alt="Chief Dakamela conferring award" 
+                className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+              <div className="absolute bottom-4 left-4 text-white">
+                <p className="font-semibold text-sm">Award Ceremony</p>
+              </div>
+            </div>
+            <div className="relative aspect-[4/3] rounded-xl overflow-hidden group">
+              <img 
+                src={eventImage2} 
+                alt="Cultural celebration moment" 
+                className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+              <div className="absolute bottom-4 left-4 text-white">
+                <p className="font-semibold text-sm">Cultural Celebration</p>
+              </div>
+            </div>
+            <div className="relative aspect-[4/3] rounded-xl overflow-hidden group">
+              <img 
+                src={eventImage3} 
+                alt="Certificate presentation" 
+                className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+              <div className="absolute bottom-4 left-4 text-white">
+                <p className="font-semibold text-sm">Certificate Presentation</p>
+              </div>
+            </div>
+            <div className="relative aspect-[4/3] rounded-xl overflow-hidden group">
+              <img 
+                src={eventImage4} 
+                alt="Traditional gathering" 
+                className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+              <div className="absolute bottom-4 left-4 text-white">
+                <p className="font-semibold text-sm">Traditional Gathering</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="text-center mt-10">
+            <Link href="/past-events">
+              <Button variant="outline" className="gap-2" data-testid="button-view-more-photos">
+                View Heritage Archive
                 <ArrowRight className="w-4 h-4" />
               </Button>
             </Link>
