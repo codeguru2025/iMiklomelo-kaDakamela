@@ -175,7 +175,7 @@ export async function seedDatabase() {
     {
       year: 2025,
       edition: "11th Edition",
-      title: "Imiklomelo Ka Dakamela 2025",
+      title: "iMiklomelo kaDakamela Cultural Festival 2025",
       summary: "The upcoming celebration continues the proud tradition of honoring achievers and preserving cultural heritage in the heart of KwaZulu-Natal.",
       eventDate: new Date("2025-12-12"),
       location: "Dakamela Royal Grounds, KwaZulu-Natal",
@@ -183,7 +183,7 @@ export async function seedDatabase() {
     {
       year: 2024,
       edition: "10th Edition",
-      title: "Imiklomelo Ka Dakamela 2024",
+      title: "iMiklomelo kaDakamela Cultural Festival 2024",
       summary: "A landmark celebration marking a decade of honoring achievement and preserving cultural heritage. Over 4,000 attendees gathered to witness the conferment of awards by Chief Dakamela.",
       eventDate: new Date("2024-12-14"),
       location: "Dakamela Royal Grounds, KwaZulu-Natal",
@@ -191,7 +191,7 @@ export async function seedDatabase() {
     {
       year: 2023,
       edition: "9th Edition",
-      title: "Imiklomelo Ka Dakamela 2023",
+      title: "iMiklomelo kaDakamela Cultural Festival 2023",
       summary: "A celebration of resilience and community spirit, bringing together families and dignitaries from across Southern Africa for three days of cultural celebration.",
       eventDate: new Date("2023-12-09"),
       location: "Dakamela Royal Grounds, KwaZulu-Natal",
@@ -199,7 +199,7 @@ export async function seedDatabase() {
     {
       year: 2022,
       edition: "8th Edition",
-      title: "Imiklomelo Ka Dakamela 2022",
+      title: "iMiklomelo kaDakamela Cultural Festival 2022",
       summary: "The return to in-person gatherings after the pandemic, celebrated with renewed energy and commitment to cultural preservation.",
       eventDate: new Date("2022-12-10"),
       location: "Dakamela Royal Grounds, KwaZulu-Natal",
@@ -259,7 +259,7 @@ export async function seedDatabase() {
     },
     {
       title: "2026 Event Dates Confirmed",
-      content: "Mark your calendars! The 12th Edition of Imiklomelo Ka Dakamela will take place December 11-13, 2026 at the Dakamela Royal Grounds.",
+      content: "Mark your calendars! The 12th Edition of iMiklomelo kaDakamela Cultural Festival will take place December 11-13, 2026 at the Dakamela Royal Grounds.",
       isPublished: true,
       publishedAt: new Date(),
     },

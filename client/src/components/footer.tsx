@@ -12,12 +12,12 @@ export function Footer() {
             <div className="flex items-center gap-3">
               <img src={logoImage} alt="Chief Dakamela Logo" className="h-12 w-auto" />
               <div className="flex flex-col">
-                <span className="font-serif text-lg font-bold">Imiklomelo Ka Dakamela</span>
-                <span className="text-xs text-muted-foreground">Chief Dakamela Achievers Awards</span>
+                <span className="font-serif text-lg font-bold">iMiklomelo kaDakamela</span>
+                <span className="text-xs text-muted-foreground">Cultural Festival</span>
               </div>
             </div>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              Preserving tradition, celebrating achievement. The official platform for the Chief Dakamela Achievers Awards & Cultural Gathering.
+              Preserving tradition, celebrating culture. The official platform for the iMiklomelo kaDakamela Cultural Festival.
             </p>
           </div>
 
@@ -96,7 +96,7 @@ export function Footer() {
 
         <div className="border-t mt-8 pt-8 flex flex-col sm:flex-row justify-between items-center gap-4">
           <p className="text-sm text-muted-foreground">
-            &copy; {new Date().getFullYear()} Imiklomelo Ka Dakamela. All rights reserved.
+            &copy; {new Date().getFullYear()} iMiklomelo kaDakamela Cultural Festival. All rights reserved.
           </p>
           <p className="text-xs text-muted-foreground">
             This platform preserves the authority of Chief Dakamela tradition.

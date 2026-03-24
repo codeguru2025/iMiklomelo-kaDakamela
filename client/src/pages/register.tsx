@@ -463,7 +463,7 @@ export default function Register() {
                             <div className="space-y-1 leading-none">
                               <FormLabel>First Time Attendee</FormLabel>
                               <FormDescription>
-                                Check this if this is your first time attending Imiklomelo Ka Dakamela
+                                Check this if this is your first time attending iMiklomelo kaDakamela Cultural Festival
                               </FormDescription>
                             </div>
                           </FormItem>

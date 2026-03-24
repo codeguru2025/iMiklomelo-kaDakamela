@@ -52,8 +52,6 @@ export async function initializePayment(request: PaynowInitRequest): Promise<Pay
   }
 
   const baseUrl = request.returnUrl 
-    || process.env.REPLIT_DEPLOYMENT_URL 
-    || (process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : null)
     || process.env.APP_URL 
     || "https://localhost:5000";
   const returnUrl = baseUrl;

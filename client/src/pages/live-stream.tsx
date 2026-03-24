@@ -106,7 +106,7 @@ export default function LiveStream() {
             Watch Live from Anywhere
           </h1>
           <p className="text-lg text-white/80 max-w-2xl mx-auto">
-            Can't make it to Dakamela Hall? Experience the Chief Dakamela Achievers Awards & Cultural Gathering live, wherever you are.
+            Can't make it to Dakamela Hall? Experience the iMiklomelo kaDakamela Cultural Festival live, wherever you are.
           </p>
           {isLive && (
             <Badge className="mt-6 bg-red-500 text-white animate-pulse">

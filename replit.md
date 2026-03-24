@@ -1,8 +1,8 @@
-# Imiklomelo Ka Dakamela - Event Platform
+# iMiklomelo kaDakamela Cultural Festival - Event Platform
 
 ## Overview
 
-This is the official web platform for **Imiklomelo Ka Dakamela** (Chief Dakamela Achievers Awards & Cultural Gathering). The application serves as a mission-critical, mobile-first booking and reservation system for a high-profile cultural event in South Africa.
+This is the official web platform for **iMiklomelo kaDakamela Cultural Festival**. The application serves as a mission-critical, mobile-first booking and reservation system for a high-profile cultural event.
 
 Key functions:
 - Event information and registration for attendees

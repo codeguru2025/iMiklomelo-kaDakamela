@@ -217,7 +217,7 @@ export const videoFeedPosts = pgTable("video_feed_posts", {
 export const streamSettings = pgTable("stream_settings", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   streamUrl: text("stream_url"),
-  streamTitle: text("stream_title").default("Imiklomelo Ka Dakamela 2026 - Live"),
+  streamTitle: text("stream_title").default("iMiklomelo kaDakamela Cultural Festival 2026 - Live"),
   streamDescription: text("stream_description"),
   isLive: boolean("is_live").default(false).notNull(),
   streamPrice: decimal("stream_price", { precision: 10, scale: 2 }).default("15.00").notNull(),

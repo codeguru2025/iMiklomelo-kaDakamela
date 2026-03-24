@@ -197,7 +197,7 @@ function StreamingManagement() {
   const { toast } = useToast();
   const [streamSettings, setStreamSettings] = useState({
     streamUrl: "",
-    streamTitle: "Chief Dakamela Achievers Awards 2026 - Live Stream",
+    streamTitle: "iMiklomelo kaDakamela Cultural Festival 2026 - Live Stream",
     isLive: false,
     streamPrice: "15.00",
     allowVideoFeed: false,
@@ -274,7 +274,7 @@ function StreamingManagement() {
   if (settings && !settingsLoading && streamSettings.streamUrl === "" && settings.streamUrl) {
     setStreamSettings({
       streamUrl: settings.streamUrl || "",
-      streamTitle: settings.streamTitle || "Chief Dakamela Achievers Awards 2026 - Live Stream",
+      streamTitle: settings.streamTitle || "iMiklomelo kaDakamela Cultural Festival 2026 - Live Stream",
       isLive: settings.isLive || false,
       streamPrice: settings.streamPrice || "15.00",
       allowVideoFeed: settings.allowVideoFeed || false,
@@ -472,7 +472,7 @@ function StreamingManagement() {
                   <div className="flex-1">
                     <p className="font-medium">{post.caption || "No caption"}</p>
                     <p className="text-sm text-muted-foreground">
-                      By: {post.userName} • {new Date(post.createdAt!).toLocaleString()}
+                      By: {post.authorName} • {new Date(post.createdAt!).toLocaleString()}
                     </p>
                     <a
                       href={post.videoUrl}
@@ -534,7 +534,7 @@ function StreamingManagement() {
                 {recordings.map((rec) => (
                   <TableRow key={rec.id}>
                     <TableCell className="font-medium">{rec.title}</TableCell>
-                    <TableCell>{Math.floor(rec.duration / 60)}:{(rec.duration % 60).toString().padStart(2, "0")}</TableCell>
+                    <TableCell>{Math.floor((rec.duration ?? 0) / 60)}:{((rec.duration ?? 0) % 60).toString().padStart(2, "0")}</TableCell>
                     <TableCell>{new Date(rec.createdAt!).toLocaleDateString()}</TableCell>
                     <TableCell className="text-right">
                       <Button

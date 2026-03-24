@@ -107,7 +107,7 @@ export default function Event() {
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div className="space-y-6">
               <p className="text-lg text-muted-foreground leading-relaxed">
-                Imiklomelo Ka Dakamela is the official Chief Dakamela Achievers Awards & Cultural Gathering, 
+                iMiklomelo kaDakamela Cultural Festival is the official cultural festival, 
                 a prestigious annual event that brings together communities to celebrate achievement, preserve 
                 tradition, and honor those who have made exceptional contributions.
               </p>
@@ -315,7 +315,7 @@ export default function Event() {
             Ready to Join Us?
           </h2>
           <p className="text-amber-100/90 max-w-xl mx-auto mb-8">
-            Register now to secure your place at Imiklomelo Ka Dakamela 2026. 
+            Register now to secure your place at iMiklomelo kaDakamela Cultural Festival 2026. 
             Accommodation spaces are limited.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center flex-wrap">

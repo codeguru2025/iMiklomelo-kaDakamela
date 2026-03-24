@@ -45,7 +45,7 @@ export default function PastEvents() {
           </h1>
           
           <p className="text-lg text-amber-100/90 mb-8 max-w-2xl mx-auto">
-            Explore the rich history of Imiklomelo Ka Dakamela. Discover past awardees, 
+            Explore the rich history of iMiklomelo kaDakamela Cultural Festival. Discover past highlights, 
             memorable moments, and the legacy of cultural excellence.
           </p>
 
@@ -242,7 +242,7 @@ export default function PastEvents() {
               <h3 className="font-serif text-2xl font-bold mb-3">Archive Coming Soon</h3>
               <p className="text-muted-foreground max-w-md mx-auto">
                 The heritage archive is being prepared. Check back soon to explore 
-                the history of Imiklomelo Ka Dakamela and our distinguished awardees.
+                the history of iMiklomelo kaDakamela Cultural Festival and our distinguished moments.
               </p>
             </div>
           )}
@@ -257,7 +257,7 @@ export default function PastEvents() {
               About the Awards
             </h2>
             <p className="text-muted-foreground mb-6">
-              The Chief Dakamela Achievers Awards are not determined by public nomination or voting. 
+              Awards and recognitions at iMiklomelo kaDakamela Cultural Festival are not determined by public nomination or voting. 
               In keeping with sacred tradition, all awards are privately decided and personally 
               conferred by the Chief. This platform documents and celebrates past recipients 
               while honoring the authority of our cultural traditions.

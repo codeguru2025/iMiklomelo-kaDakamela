@@ -45,8 +45,8 @@ export function Header() {
         <Link href="/" className="flex items-center gap-3" data-testid="link-logo">
           <img src={logoImage} alt="Chief Dakamela Logo" className="h-10 w-auto" />
           <div className="hidden sm:flex flex-col">
-            <span className="font-serif text-lg font-bold leading-tight">Imiklomelo Ka Dakamela</span>
-            <span className="text-xs text-muted-foreground">Chief Dakamela Achievers Awards</span>
+            <span className="font-serif text-lg font-bold leading-tight">iMiklomelo kaDakamela</span>
+            <span className="text-xs text-muted-foreground">Cultural Festival</span>
           </div>
         </Link>
 
@@ -133,8 +133,8 @@ export function Header() {
                 <div className="flex items-center gap-3 mb-4">
                   <img src={logoImage} alt="Chief Dakamela Logo" className="h-12 w-auto" />
                   <div className="flex flex-col">
-                    <span className="font-serif font-bold">Imiklomelo</span>
-                    <span className="text-xs text-muted-foreground">Ka Dakamela</span>
+                    <span className="font-serif font-bold">iMiklomelo</span>
+                    <span className="text-xs text-muted-foreground">kaDakamela</span>
                   </div>
                 </div>
 

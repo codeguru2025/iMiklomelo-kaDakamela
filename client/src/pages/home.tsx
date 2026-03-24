@@ -90,13 +90,13 @@ export default function Home() {
               </Badge>
               
               <h1 className="font-serif text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold text-white mb-6 leading-tight">
-                Imiklomelo Ka<br />
-                <span className="text-amber-400">Dakamela</span>
+                iMiklomelo<br />
+                <span className="text-amber-400">kaDakamela</span>
               </h1>
               
               <p className="text-lg md:text-xl text-amber-100/90 mb-8 max-w-xl mx-auto lg:mx-0">
-                The Official Chief Dakamela Achievers Awards & Cultural Gathering. 
-                Where tradition meets excellence, and heritage is celebrated.
+                iMiklomelo kaDakamela Cultural Festival.
+                Where tradition, culture, and heritage are celebrated.
               </p>
 
               <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start flex-wrap">
@@ -345,7 +345,7 @@ export default function Home() {
                 Past Celebrations
               </h2>
               <p className="text-muted-foreground max-w-2xl mx-auto">
-                Explore the rich history of Imiklomelo Ka Dakamela and the achievers who have been honored.
+                Explore the rich history of iMiklomelo kaDakamela Cultural Festival and the moments that have been celebrated.
               </p>
             </div>
 
@@ -433,7 +433,7 @@ export default function Home() {
         <div className="absolute inset-0 bg-black/30" />
         <div className="container relative mx-auto px-4 text-center">
           <h2 className="font-serif text-3xl md:text-4xl font-bold text-white mb-6">
-            Join Us at Imiklomelo Ka Dakamela 2026
+            Join Us at iMiklomelo kaDakamela Cultural Festival 2026
           </h2>
           <p className="text-amber-100/90 max-w-2xl mx-auto mb-8">
             Be part of this historic celebration of culture, achievement, and community. 

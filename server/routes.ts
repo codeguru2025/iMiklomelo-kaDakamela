@@ -344,7 +344,7 @@ export async function registerRoutes(
         reference,
         email,
         amount: parseFloat(amount),
-        additionalInfo: `Imiklomelo Ka Dakamela - ${paymentType || "deposit"}`,
+        additionalInfo: `iMiklomelo kaDakamela Cultural Festival - ${paymentType || "deposit"}`,
       });
 
       if (paynowResponse.status === "Ok" && paynowResponse.browserUrl) {
@@ -902,7 +902,7 @@ export async function registerRoutes(
           streamPrice: "15.00",
           currency: "USD",
           isLive: false,
-          streamTitle: "Imiklomelo Ka Dakamela 2026 - Live",
+          streamTitle: "iMiklomelo kaDakamela Cultural Festival 2026 - Live",
           allowVideoFeed: false,
         });
         return;
@@ -972,7 +972,7 @@ export async function registerRoutes(
         amount: parseFloat(price),
         email,
         reference: `STREAM-${streamAccess.id}`,
-        returnUrl: `${process.env.REPLIT_DEV_DOMAIN ? 'https://' + process.env.REPLIT_DEV_DOMAIN : ''}/live-stream?code=${accessCode}`,
+        returnUrl: `${process.env.APP_URL || ''}/live-stream?code=${accessCode}`,
       });
 
       if (payment.status !== "Ok" || !payment.browserUrl) {
@@ -1145,7 +1145,7 @@ export async function registerRoutes(
         res.status(400).json({ error: "Invalid stream settings data" });
         return;
       }
-      const settings = await storage.updateStreamSettings(parsed.data);
+      const settings = await storage.upsertStreamSettings(parsed.data);
       res.json(settings);
     } catch (error) {
       res.status(500).json({ error: "Failed to update stream settings" });
@@ -1230,8 +1230,10 @@ export async function registerRoutes(
     }
     try {
       const accessList = await storage.getAllStreamAccess();
+      const settings = await storage.getStreamSettings();
       const totalSubscribers = accessList.filter(a => a.status === "active").length;
-      const totalRevenue = accessList.filter(a => a.status === "active").reduce((sum, a) => sum + parseFloat(a.amount || "0"), 0);
+      const pricePerAccess = parseFloat(settings?.streamPrice ?? "15.00");
+      const totalRevenue = totalSubscribers * pricePerAccess;
       res.json({ totalSubscribers, totalRevenue });
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch stream stats" });

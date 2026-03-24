@@ -54,7 +54,7 @@ export default function Sponsors() {
           
           <p className="text-lg text-amber-100/90 mb-8 max-w-2xl mx-auto">
             We thank our generous sponsors and talented exhibitors who make 
-            Imiklomelo Ka Dakamela a truly memorable celebration.
+            iMiklomelo kaDakamela Cultural Festival a truly memorable celebration.
           </p>
         </div>
       </section>
@@ -274,7 +274,7 @@ export default function Sponsors() {
               Partner With Us
             </h2>
             <p className="text-muted-foreground mb-8">
-              Interested in sponsoring or exhibiting at Imiklomelo Ka Dakamela 2026? 
+              Interested in sponsoring or exhibiting at iMiklomelo kaDakamela Cultural Festival 2026? 
               Join us in celebrating African heritage and supporting cultural excellence.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">

@@ -144,7 +144,7 @@ export default function Apply() {
               Apply as Sponsor or Exhibitor
             </h1>
             <p className="text-muted-foreground">
-              Join us in celebrating African heritage at Imiklomelo Ka Dakamela 2026
+              Join us in celebrating African heritage at iMiklomelo kaDakamela Cultural Festival 2026
             </p>
           </div>
 

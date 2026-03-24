@@ -91,11 +91,11 @@ export default function TicketPage() {
           <div className="bg-gradient-to-br from-amber-900 via-orange-800 to-yellow-700 p-6 text-center text-white">
             <img 
               src={logoImage} 
-              alt="Imiklomelo Ka Dakamela" 
+              alt="iMiklomelo kaDakamela Cultural Festival" 
               className="w-20 h-20 mx-auto mb-3 drop-shadow-lg"
             />
-            <h1 className="font-serif text-2xl font-bold">Imiklomelo Ka Dakamela</h1>
-            <p className="text-amber-100 text-sm">Chief Dakamela Achievers Awards 2026</p>
+            <h1 className="font-serif text-2xl font-bold">iMiklomelo kaDakamela Cultural Festival</h1>
+            <p className="text-amber-100 text-sm">Cultural Festival 2026</p>
           </div>
 
           <CardContent className="p-6 space-y-6">

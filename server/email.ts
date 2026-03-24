@@ -1,44 +1,15 @@
 // Resend email integration for transactional emails
 import { Resend } from 'resend';
 
-let connectionSettings: any;
-
-async function getCredentials() {
-  const hostname = process.env.REPLIT_CONNECTORS_HOSTNAME;
-  const xReplitToken = process.env.REPL_IDENTITY 
-    ? 'repl ' + process.env.REPL_IDENTITY 
-    : process.env.WEB_REPL_RENEWAL 
-    ? 'depl ' + process.env.WEB_REPL_RENEWAL 
-    : null;
-
-  if (!xReplitToken) {
-    throw new Error('X_REPLIT_TOKEN not found for repl/depl');
+function getResendClient() {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) {
+    throw new Error('RESEND_API_KEY environment variable is required for sending emails');
   }
-
-  connectionSettings = await fetch(
-    'https://' + hostname + '/api/v2/connection?include_secrets=true&connector_names=resend',
-    {
-      headers: {
-        'Accept': 'application/json',
-        'X_REPLIT_TOKEN': xReplitToken
-      }
-    }
-  ).then(res => res.json()).then(data => data.items?.[0]);
-
-  if (!connectionSettings || (!connectionSettings.settings.api_key)) {
-    throw new Error('Resend not connected');
-  }
-  return {
-    apiKey: connectionSettings.settings.api_key, 
-    fromEmail: connectionSettings.settings.from_email
-  };
-}
-
-async function getUncachableResendClient() {
-  const { apiKey, fromEmail } = await getCredentials();
+  const fromEmail = process.env.RESEND_FROM_EMAIL || 'noreply@resend.dev';
   return {
     client: new Resend(apiKey),
-    fromEmail
+    fromEmail,
   };
 }
 
@@ -71,7 +42,7 @@ interface PaymentConfirmationData {
 
 export async function sendRegistrationEmail(data: RegistrationEmailData): Promise<boolean> {
   try {
-    const { client, fromEmail } = await getUncachableResendClient();
+    const { client, fromEmail } = getResendClient();
     
     const ticketSection = data.ticketCode 
       ? `
@@ -83,12 +54,7 @@ export async function sendRegistrationEmail(data: RegistrationEmailData): Promis
       `
       : '';
 
-    // Use production domain if available, fall back to dev domain
-  const baseUrl = process.env.REPLIT_DOMAINS 
-    ? 'https://' + process.env.REPLIT_DOMAINS.split(',')[0]
-    : process.env.REPLIT_DEV_DOMAIN 
-    ? 'https://' + process.env.REPLIT_DEV_DOMAIN 
-    : '';
+  const baseUrl = process.env.APP_URL || '';
 
   const accommodationNote = data.needsAccommodation 
       ? `<p style="color: #666;">You have indicated that you need accommodation. Please proceed to our <a href="${baseUrl}/accommodation" style="color: #f97316;">accommodation page</a> to complete your booking.</p>`
@@ -97,7 +63,7 @@ export async function sendRegistrationEmail(data: RegistrationEmailData): Promis
     await client.emails.send({
       from: fromEmail || 'noreply@resend.dev',
       to: data.email,
-      subject: 'Welcome to Imiklomelo Ka Dakamela 2026!',
+      subject: 'Welcome to iMiklomelo kaDakamela Cultural Festival 2026!',
       html: `
         <!DOCTYPE html>
         <html>
@@ -107,8 +73,8 @@ export async function sendRegistrationEmail(data: RegistrationEmailData): Promis
         </head>
         <body style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: #ffffff;">
           <div style="text-align: center; margin-bottom: 30px;">
-            <h1 style="color: #f97316; margin: 0;">Imiklomelo Ka Dakamela</h1>
-            <p style="color: #666; margin: 5px 0 0 0;">Chief Dakamela Achievers Awards & Cultural Gathering</p>
+            <h1 style="color: #f97316; margin: 0;">iMiklomelo kaDakamela Cultural Festival</h1>
+            <p style="color: #666; margin: 5px 0 0 0;">Cultural Festival</p>
           </div>
 
           <div style="background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); color: white; padding: 30px; border-radius: 12px; margin-bottom: 20px;">
@@ -147,7 +113,7 @@ export async function sendRegistrationEmail(data: RegistrationEmailData): Promis
 
           <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
             <p style="color: #999; font-size: 12px; margin: 0;">
-              © 2026 Imiklomelo Ka Dakamela. All rights reserved.
+              © 2026 iMiklomelo kaDakamela Cultural Festival. All rights reserved.
             </p>
           </div>
         </body>
@@ -165,7 +131,7 @@ export async function sendRegistrationEmail(data: RegistrationEmailData): Promis
 
 export async function sendBookingConfirmationEmail(data: BookingConfirmationData): Promise<boolean> {
   try {
-    const { client, fromEmail } = await getUncachableResendClient();
+    const { client, fromEmail } = getResendClient();
 
     const formatDate = (date: Date) => new Date(date).toLocaleDateString('en-ZA', {
       weekday: 'long',
@@ -177,7 +143,7 @@ export async function sendBookingConfirmationEmail(data: BookingConfirmationData
     await client.emails.send({
       from: fromEmail || 'noreply@resend.dev',
       to: data.email,
-      subject: 'Accommodation Booking Confirmed - Imiklomelo Ka Dakamela 2026',
+      subject: 'Accommodation Booking Confirmed - iMiklomelo kaDakamela Cultural Festival 2026',
       html: `
         <!DOCTYPE html>
         <html>
@@ -187,8 +153,8 @@ export async function sendBookingConfirmationEmail(data: BookingConfirmationData
         </head>
         <body style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: #ffffff;">
           <div style="text-align: center; margin-bottom: 30px;">
-            <h1 style="color: #f97316; margin: 0;">Imiklomelo Ka Dakamela</h1>
-            <p style="color: #666; margin: 5px 0 0 0;">Chief Dakamela Achievers Awards & Cultural Gathering</p>
+            <h1 style="color: #f97316; margin: 0;">iMiklomelo kaDakamela Cultural Festival</h1>
+            <p style="color: #666; margin: 5px 0 0 0;">Cultural Festival</p>
           </div>
 
           <div style="background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); color: white; padding: 30px; border-radius: 12px; margin-bottom: 20px;">
@@ -247,7 +213,7 @@ export async function sendBookingConfirmationEmail(data: BookingConfirmationData
 
           <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
             <p style="color: #999; font-size: 12px; margin: 0;">
-              © 2026 Imiklomelo Ka Dakamela. All rights reserved.
+              © 2026 iMiklomelo kaDakamela Cultural Festival. All rights reserved.
             </p>
           </div>
         </body>
@@ -265,12 +231,12 @@ export async function sendBookingConfirmationEmail(data: BookingConfirmationData
 
 export async function sendPaymentConfirmationEmail(data: PaymentConfirmationData): Promise<boolean> {
   try {
-    const { client, fromEmail } = await getUncachableResendClient();
+    const { client, fromEmail } = getResendClient();
 
     await client.emails.send({
       from: fromEmail || 'noreply@resend.dev',
       to: data.email,
-      subject: 'Payment Received - Imiklomelo Ka Dakamela 2026',
+      subject: 'Payment Received - iMiklomelo kaDakamela Cultural Festival 2026',
       html: `
         <!DOCTYPE html>
         <html>
@@ -280,8 +246,8 @@ export async function sendPaymentConfirmationEmail(data: PaymentConfirmationData
         </head>
         <body style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: #ffffff;">
           <div style="text-align: center; margin-bottom: 30px;">
-            <h1 style="color: #f97316; margin: 0;">Imiklomelo Ka Dakamela</h1>
-            <p style="color: #666; margin: 5px 0 0 0;">Chief Dakamela Achievers Awards & Cultural Gathering</p>
+            <h1 style="color: #f97316; margin: 0;">iMiklomelo kaDakamela Cultural Festival</h1>
+            <p style="color: #666; margin: 5px 0 0 0;">Cultural Festival</p>
           </div>
 
           <div style="background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); color: white; padding: 30px; border-radius: 12px; margin-bottom: 20px; text-align: center;">
@@ -318,7 +284,7 @@ export async function sendPaymentConfirmationEmail(data: PaymentConfirmationData
 
           <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
             <p style="color: #999; font-size: 12px; margin: 0;">
-              © 2026 Imiklomelo Ka Dakamela. All rights reserved.
+              © 2026 iMiklomelo kaDakamela Cultural Festival. All rights reserved.
             </p>
           </div>
         </body>
