@@ -13,7 +13,7 @@ import { randomUUID } from "crypto";
 import { setupAuth, registerAuthRoutes, isAdmin } from "./replit_integrations/auth";
 import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
 import { sendRegistrationEmail, sendBookingConfirmationEmail, sendPaymentConfirmationEmail } from "./email";
-import { getPresignedReadUrl, objectExists } from "./spaces";
+import { getPresignedReadUrl, isSpacesConfigured, objectExists } from "./spaces";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -36,6 +36,14 @@ export async function registerRoutes(
         return;
       }
 
+      if (!isSpacesConfigured()) {
+        res.status(500).json({
+          error: "Spaces not configured",
+          required: ["DO_SPACES_KEY", "DO_SPACES_SECRET", "DO_SPACES_BUCKET"],
+        });
+        return;
+      }
+
       const candidates = [`attached assets/${file}`, `attached_assets/${file}`];
       let foundKey: string | undefined;
 
@@ -47,7 +55,7 @@ export async function registerRoutes(
       }
 
       if (!foundKey) {
-        res.status(404).json({ error: "Not found" });
+        res.status(404).json({ error: "Not found", attempted: candidates });
         return;
       }
 
