@@ -1,7 +1,10 @@
 import { defineConfig } from "drizzle-kit";
 
-if (!process.env.DATABASE_URL) {
-  throw new Error("DATABASE_URL, ensure the database is provisioned");
+// Migrations must use the DIRECT connection (not the pooler)
+const migrationUrl = process.env.DATABASE_DIRECT_URL || process.env.DATABASE_URL;
+
+if (!migrationUrl) {
+  throw new Error("DATABASE_DIRECT_URL or DATABASE_URL must be set for migrations");
 }
 
 export default defineConfig({
@@ -9,6 +12,6 @@ export default defineConfig({
   schema: "./shared/schema.ts",
   dialect: "postgresql",
   dbCredentials: {
-    url: process.env.DATABASE_URL,
+    url: migrationUrl,
   },
 });
