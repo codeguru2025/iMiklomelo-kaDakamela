@@ -20,7 +20,7 @@ services:
         value: "${db.DATABASE_URL}"
       - key: APP_URL
         scope: RUN_TIME
-        value: "${APP_DOMAIN}"
+        value: https://dakamela-n729i.ondigitalocean.app
       - key: NODE_ENV
         scope: RUN_TIME
         value: production
