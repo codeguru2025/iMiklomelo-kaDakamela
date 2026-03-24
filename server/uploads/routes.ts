@@ -13,6 +13,7 @@ export function registerUploadRoutes(app: Express): void {
   app.post("/api/uploads/request-url", async (req, res) => {
     try {
       if (!isSpacesConfigured()) {
+        console.error("[Upload] Spaces not configured - upload request rejected");
         return res.status(503).json({
           error: "Object storage not configured. Set DO_SPACES_KEY, DO_SPACES_SECRET, and DO_SPACES_BUCKET.",
         });
@@ -21,15 +22,21 @@ export function registerUploadRoutes(app: Express): void {
       const { name, size, contentType } = req.body;
 
       if (!name) {
+        console.error("[Upload] Missing file name in request");
         return res.status(400).json({
           error: "Missing required field: name",
         });
       }
 
+      console.log(`[Upload] Generating presigned URL for: ${name} (${contentType || 'application/octet-stream'})`);
+
       const { uploadURL, objectPath, publicUrl } = await getPresignedUploadUrl({
         fileName: name,
         contentType: contentType || "application/octet-stream",
+        folder: "attached assets",
       });
+
+      console.log(`[Upload] Generated URL for: ${objectPath}`);
 
       res.json({
         uploadURL,
@@ -37,9 +44,13 @@ export function registerUploadRoutes(app: Express): void {
         publicUrl,
         metadata: { name, size, contentType },
       });
-    } catch (error) {
-      console.error("Error generating upload URL:", error);
-      res.status(500).json({ error: "Failed to generate upload URL" });
+    } catch (error: any) {
+      console.error("[Upload] Error generating upload URL:", error?.message || error);
+      console.error("[Upload] Error details:", error);
+      res.status(500).json({ 
+        error: "Failed to generate upload URL",
+        details: error?.message || "Unknown error"
+      });
     }
   });
 
