@@ -13,7 +13,8 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Camp, CampService } from "@shared/schema";
-import campPlanImage from "@assets/Chief_Dakamela_Awards_Camping_Plan_1769945860736.png";
+import { assets } from "@/assets/cdn";
+const campPlanImage = assets.campPlan;
 
 export default function Accommodation() {
   const [selectedServices, setSelectedServices] = useState<string[]>([]);

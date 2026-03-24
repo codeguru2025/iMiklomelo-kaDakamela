@@ -4,7 +4,8 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Menu, Moon, Sun, Calendar, Tent, Award, Building2, Home, LogIn, LogOut, User, Tv, Video } from "lucide-react";
 import { useTheme } from "./theme-provider";
 import { useState } from "react";
-import logoImage from "@assets/DK_LOGO_1769944557082.png";
+import { assets } from "@/assets/cdn";
+const logoImage = assets.logo;
 import { useAuth } from "@/hooks/use-auth";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {

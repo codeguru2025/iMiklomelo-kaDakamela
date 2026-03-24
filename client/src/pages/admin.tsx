@@ -99,7 +99,7 @@ function ImageUpdateDialog({ event, onUpdate, isPending }: {
       
       if (!response.ok) throw new Error("Failed to get upload URL");
       
-      const { uploadURL, objectPath } = await response.json();
+      const { uploadURL, publicUrl } = await response.json();
       setUploadProgress(30);
       
       await fetch(uploadURL, {
@@ -109,7 +109,7 @@ function ImageUpdateDialog({ event, onUpdate, isPending }: {
       });
       
       setUploadProgress(100);
-      setImageUrl(objectPath);
+      setImageUrl(publicUrl);
     } catch (error) {
       console.error("Upload failed:", error);
     } finally {

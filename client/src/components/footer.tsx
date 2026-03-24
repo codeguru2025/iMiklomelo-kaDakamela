@@ -1,6 +1,7 @@
 import { Link } from "wouter";
-import logoImage from "@assets/DK_LOGO_1769944557082.png";
-import chibikhululogo from "@assets/CK_Logo_1770117291903.jpeg";
+import { assets } from "@/assets/cdn";
+const logoImage = assets.logo;
+const chibikhululogo = assets.chibikhululogo;
 import { MapPin, Phone, Mail, Facebook, Instagram, Twitter } from "lucide-react";
 
 export function Footer() {

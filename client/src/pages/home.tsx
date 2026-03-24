@@ -6,12 +6,13 @@ import { Badge } from "@/components/ui/badge";
 import { Calendar, MapPin, Users, Award, Tent, ArrowRight, Star, Crown, Sparkles, Building2, Ticket } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import type { Announcement, Company, PastEvent } from "@shared/schema";
-import logoImage from "@assets/DK_LOGO_1769944557082.png";
-import kingdomBlueLogo from "@assets/kbf_logo_1770113825582.png";
-import eventImage1 from "@assets/IMG_0740_1770114288425.jpg";
-import eventImage2 from "@assets/IMG_0739_1770114288425.jpg";
-import eventImage3 from "@assets/IMG_0738_1770114288426.jpg";
-import eventImage4 from "@assets/IMG_0732_1770114288426.jpg";
+import { assets } from "@/assets/cdn";
+const logoImage = assets.logo;
+const kingdomBlueLogo = assets.kingdomBlueLogo;
+const eventImage1 = assets.eventImage1;
+const eventImage2 = assets.eventImage2;
+const eventImage3 = assets.eventImage3;
+const eventImage4 = assets.eventImage4;
 
 const heroImages = [eventImage1, eventImage2, eventImage3, eventImage4];
 

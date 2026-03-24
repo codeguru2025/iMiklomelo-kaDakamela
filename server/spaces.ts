@@ -3,7 +3,7 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { randomUUID } from "crypto";
 
 // DigitalOcean Spaces configuration (S3-compatible)
-const SPACES_REGION = process.env.DO_SPACES_REGION || "nyc3";
+const SPACES_REGION = process.env.DO_SPACES_REGION || "lon1";
 const SPACES_BUCKET = process.env.DO_SPACES_BUCKET || "";
 const SPACES_ENDPOINT = process.env.DO_SPACES_ENDPOINT || `https://${SPACES_REGION}.digitaloceanspaces.com`;
 const SPACES_CDN_ENDPOINT = process.env.DO_SPACES_CDN_ENDPOINT || ""; // e.g. https://bucket.nyc3.cdn.digitaloceanspaces.com

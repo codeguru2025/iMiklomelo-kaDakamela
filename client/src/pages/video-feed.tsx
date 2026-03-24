@@ -79,7 +79,7 @@ export default function VideoFeed() {
 
       if (!urlResponse.ok) throw new Error("Failed to get upload URL");
 
-      const { uploadURL, objectPath } = await urlResponse.json();
+      const { uploadURL, publicUrl } = await urlResponse.json();
 
       await fetch(uploadURL, {
         method: "PUT",
@@ -89,7 +89,7 @@ export default function VideoFeed() {
 
       await apiRequest("POST", "/api/video-feed", {
         authorName,
-        videoUrl: objectPath,
+        videoUrl: publicUrl,
         caption,
       });
 

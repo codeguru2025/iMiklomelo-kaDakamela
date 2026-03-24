@@ -72,7 +72,7 @@ export default function Apply() {
       
       if (!response.ok) throw new Error("Failed to get upload URL");
       
-      const { uploadURL, objectPath } = await response.json();
+      const { uploadURL, publicUrl } = await response.json();
       
       await fetch(uploadURL, {
         method: "PUT",
@@ -80,8 +80,8 @@ export default function Apply() {
         headers: { "Content-Type": file.type },
       });
       
-      setLogoUrl(objectPath);
-      form.setValue("logoUrl", objectPath);
+      setLogoUrl(publicUrl);
+      form.setValue("logoUrl", publicUrl);
       toast({ title: "Logo uploaded successfully" });
     } catch (error) {
       console.error("Upload failed:", error);

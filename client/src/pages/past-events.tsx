@@ -12,9 +12,10 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { PastEvent, Awardee, Company } from "@shared/schema";
-import eventImage1 from "@assets/IMG_0731_1770114288427.jpg";
-import eventImage2 from "@assets/IMG_0727_1770114288428.jpg";
-import eventImage3 from "@assets/IMG_0725_(1)_1770114288429.jpg";
+import { assets } from "@/assets/cdn";
+const eventImage1 = assets.pastEvent1;
+const eventImage2 = assets.pastEvent2;
+const eventImage3 = assets.pastEvent3;
 
 const defaultEventImages = [eventImage1, eventImage2, eventImage3];
 

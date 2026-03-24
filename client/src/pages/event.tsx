@@ -6,10 +6,11 @@ import {
   Calendar, MapPin, Clock, Users, Award, Tent, Utensils, Music, 
   Camera, Shield, Car, ArrowRight, CheckCircle2, Crown, Ticket
 } from "lucide-react";
-import logoImage from "@assets/DK_LOGO_1769944557082.png";
-import awardCeremony1 from "@assets/IMG_0730_1770114288427.jpg";
-import awardCeremony2 from "@assets/IMG_0729_1770114288428.jpg";
-import awardCeremony3 from "@assets/IMG_0728_1770114288428.jpg";
+import { assets } from "@/assets/cdn";
+const logoImage = assets.logo;
+const awardCeremony1 = assets.awardCeremony1;
+const awardCeremony2 = assets.awardCeremony2;
+const awardCeremony3 = assets.awardCeremony3;
 
 const schedule = [
   { 

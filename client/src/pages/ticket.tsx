@@ -8,7 +8,8 @@ import { Ticket as TicketIcon, Calendar, MapPin, User, Download, QrCode, CheckCi
 import type { Ticket, Attendee } from "@shared/schema";
 import { useEffect, useRef } from "react";
 import QRCode from "qrcode";
-import logoImage from "@assets/DK_LOGO_1769944557082.png";
+import { assets } from "@/assets/cdn";
+const logoImage = assets.logo;
 
 export default function TicketPage() {
   const params = useParams<{ attendeeId: string }>();
