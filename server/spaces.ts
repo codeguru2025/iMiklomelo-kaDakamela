@@ -8,18 +8,21 @@ const SPACES_BUCKET = process.env.DO_SPACES_BUCKET || "";
 const SPACES_ENDPOINT = process.env.DO_SPACES_ENDPOINT || `https://${SPACES_REGION}.digitaloceanspaces.com`;
 const SPACES_CDN_ENDPOINT = process.env.DO_SPACES_CDN_ENDPOINT || ""; // e.g. https://bucket.nyc3.cdn.digitaloceanspaces.com
 
+const SPACES_ACCESS_KEY = process.env.DO_SPACES_KEY || process.env.DO_SPACES_ID || "";
+const SPACES_SECRET_KEY = process.env.DO_SPACES_SECRET || "";
+
 const s3Client = new S3Client({
   endpoint: SPACES_ENDPOINT,
   region: SPACES_REGION,
   credentials: {
-    accessKeyId: process.env.DO_SPACES_KEY || "",
-    secretAccessKey: process.env.DO_SPACES_SECRET || "",
+    accessKeyId: SPACES_ACCESS_KEY,
+    secretAccessKey: SPACES_SECRET_KEY,
   },
   forcePathStyle: false,
 });
 
 export function isSpacesConfigured(): boolean {
-  return !!(process.env.DO_SPACES_KEY && process.env.DO_SPACES_SECRET && SPACES_BUCKET);
+  return !!(SPACES_ACCESS_KEY && SPACES_SECRET_KEY && SPACES_BUCKET);
 }
 
 /**
