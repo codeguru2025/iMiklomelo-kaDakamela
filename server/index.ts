@@ -6,6 +6,7 @@ import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
 import { seedDatabase } from "./seed";
+import { isSpacesConfigured } from "./spaces";
 
 const app = express();
 const httpServer = createServer(app);
@@ -94,9 +95,16 @@ app.use((req, res, next) => {
   // Seed database with initial data
   try {
     await seedDatabase();
-  } catch (error) {
+  } catch (error: any) {
     console.error("Failed to seed database:", error);
+    if (error?.code === 'SELF_SIGNED_CERT_IN_CHAIN') {
+      console.error("SSL certificate validation failed. This is expected with DO managed databases.");
+      console.error("Database seeding skipped - please verify DATABASE_URL and SSL configuration.");
+    }
   }
+
+  // Validate Spaces configuration
+  isSpacesConfigured();
 
   await registerRoutes(httpServer, app);
 

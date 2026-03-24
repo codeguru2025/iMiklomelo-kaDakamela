@@ -13,7 +13,7 @@ import { randomUUID } from "crypto";
 import { setupAuth, registerAuthRoutes, isAdmin } from "./auth";
 import { registerUploadRoutes } from "./uploads/routes";
 import { sendRegistrationEmail, sendBookingConfirmationEmail, sendPaymentConfirmationEmail } from "./email";
-import { isSpacesConfigured, streamObject } from "./spaces";
+import { isSpacesConfigured, streamObject, getPublicUrl } from "./spaces";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -27,7 +27,7 @@ export async function registerRoutes(
   // Register file upload routes
   registerUploadRoutes(app);
 
-  // Public asset proxy (handles private Spaces/CDN)
+  // Public asset proxy - redirects to CDN for better performance
   app.get("/api/assets/:file", async (req, res) => {
     try {
       const file = req.params.file;
@@ -46,15 +46,24 @@ export async function registerRoutes(
 
       // Files are stored under "attached assets/" in the Spaces bucket
       const objectKey = `attached assets/${file}`;
-      const { body, contentType } = await streamObject(objectKey);
-      res.setHeader("Content-Type", contentType);
-      res.setHeader("Cache-Control", "public, max-age=86400");
-      (body as NodeJS.ReadableStream).pipe(res);
+      
+      // Redirect to CDN URL for better performance (no server proxy overhead)
+      const cdnUrl = getPublicUrl(objectKey);
+      res.redirect(302, cdnUrl);
     } catch (error: any) {
-      console.error("Asset proxy error:", error?.message || error);
-      if (error?.$metadata?.httpStatusCode === 404 || error?.name === "NoSuchKey") {
+      const errorMsg = error?.message || error;
+      console.error(`Asset proxy error for "${req.params.file}":`, errorMsg);
+      
+      if (error?.name === "NoSuchBucket") {
+        console.error(`  Bucket not found. Check DO_SPACES_BUCKET env var and verify bucket exists in DO Spaces.`);
+        res.status(500).json({ error: "Storage bucket not configured" });
+      } else if (error?.$metadata?.httpStatusCode === 404 || error?.name === "NoSuchKey") {
         res.status(404).json({ error: "Not found" });
+      } else if (error?.name === "CredentialsProviderError" || error?.message?.includes("credentials")) {
+        console.error(`  Invalid credentials. Check DO_SPACES_KEY and DO_SPACES_SECRET.`);
+        res.status(500).json({ error: "Storage credentials invalid" });
       } else {
+        console.error(`  Error details:`, error);
         res.status(500).json({ error: "Failed to load asset" });
       }
     }

@@ -22,7 +22,18 @@ const s3Client = new S3Client({
 });
 
 export function isSpacesConfigured(): boolean {
-  return !!(SPACES_ACCESS_KEY && SPACES_SECRET_KEY && SPACES_BUCKET);
+  const configured = !!(SPACES_ACCESS_KEY && SPACES_SECRET_KEY && SPACES_BUCKET);
+  
+  if (!configured) {
+    console.warn("[Spaces] Configuration incomplete:");
+    if (!SPACES_ACCESS_KEY) console.warn("  - Missing DO_SPACES_KEY or DO_SPACES_ID");
+    if (!SPACES_SECRET_KEY) console.warn("  - Missing DO_SPACES_SECRET");
+    if (!SPACES_BUCKET) console.warn("  - Missing DO_SPACES_BUCKET");
+  } else {
+    console.log(`[Spaces] Configured: bucket="${SPACES_BUCKET}", region="${SPACES_REGION}"`);
+  }
+  
+  return configured;
 }
 
 /**
