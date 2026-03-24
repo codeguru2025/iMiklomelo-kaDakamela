@@ -13,7 +13,7 @@ import { randomUUID } from "crypto";
 import { setupAuth, registerAuthRoutes, isAdmin } from "./replit_integrations/auth";
 import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
 import { sendRegistrationEmail, sendBookingConfirmationEmail, sendPaymentConfirmationEmail } from "./email";
-import { getPresignedReadUrl, isSpacesConfigured } from "./spaces";
+import { isSpacesConfigured, streamObject } from "./spaces";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -46,11 +46,17 @@ export async function registerRoutes(
 
       // Files are stored under "attached assets/" in the Spaces bucket
       const objectKey = `attached assets/${file}`;
-      const url = await getPresignedReadUrl(objectKey, 60 * 10);
-      res.redirect(url);
-    } catch (error) {
-      console.error("Asset proxy error:", error);
-      res.status(500).json({ error: "Failed to load asset" });
+      const { body, contentType } = await streamObject(objectKey);
+      res.setHeader("Content-Type", contentType);
+      res.setHeader("Cache-Control", "public, max-age=86400");
+      (body as NodeJS.ReadableStream).pipe(res);
+    } catch (error: any) {
+      console.error("Asset proxy error:", error?.message || error);
+      if (error?.$metadata?.httpStatusCode === 404 || error?.name === "NoSuchKey") {
+        res.status(404).json({ error: "Not found" });
+      } else {
+        res.status(500).json({ error: "Failed to load asset" });
+      }
     }
   });
   

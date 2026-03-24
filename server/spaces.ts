@@ -102,4 +102,19 @@ export function getPublicUrl(objectKey: string): string {
   return `${SPACES_ENDPOINT}/${SPACES_BUCKET}/${objectKey}`;
 }
 
+/**
+ * Stream an object from DO Spaces. Returns the body stream and content type.
+ */
+export async function streamObject(objectKey: string): Promise<{ body: ReadableStream | NodeJS.ReadableStream; contentType: string }> {
+  const command = new GetObjectCommand({
+    Bucket: SPACES_BUCKET,
+    Key: objectKey,
+  });
+  const response = await s3Client.send(command);
+  return {
+    body: response.Body as NodeJS.ReadableStream,
+    contentType: response.ContentType || "application/octet-stream",
+  };
+}
+
 export { s3Client, SPACES_BUCKET };
