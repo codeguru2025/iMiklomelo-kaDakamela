@@ -10,8 +10,8 @@ import {
 import { z } from "zod";
 import { initializePayment, checkPaymentStatus, isPaymentComplete, verifyPaynowHash } from "./paynow";
 import { randomUUID } from "crypto";
-import { setupAuth, registerAuthRoutes, isAdmin } from "./replit_integrations/auth";
-import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
+import { setupAuth, registerAuthRoutes, isAdmin } from "./auth";
+import { registerUploadRoutes } from "./uploads/routes";
 import { sendRegistrationEmail, sendBookingConfirmationEmail, sendPaymentConfirmationEmail } from "./email";
 import { isSpacesConfigured, streamObject } from "./spaces";
 
@@ -20,12 +20,12 @@ export async function registerRoutes(
   app: Express
 ): Promise<Server> {
   
-  // Setup Replit Auth (MUST be before other routes)
+  // Setup authentication (MUST be before other routes)
   await setupAuth(app);
   registerAuthRoutes(app);
   
-  // Register object storage routes for file uploads
-  registerObjectStorageRoutes(app);
+  // Register file upload routes
+  registerUploadRoutes(app);
 
   // Public asset proxy (handles private Spaces/CDN)
   app.get("/api/assets/:file", async (req, res) => {

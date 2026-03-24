@@ -12,6 +12,9 @@ export function getSession() {
   const pgStore = connectPg(session);
   const sessionStore = new pgStore({
     conString: process.env.DATABASE_URL,
+    conObject: process.env.NODE_ENV === "production"
+      ? { ssl: { rejectUnauthorized: false } }
+      : undefined,
     createTableIfMissing: true,
     ttl: sessionTtl,
     tableName: "sessions",
@@ -24,6 +27,7 @@ export function getSession() {
     cookie: {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
       maxAge: sessionTtl,
     },
   });
@@ -126,37 +130,24 @@ export const isAuthenticated: RequestHandler = (req, res, next) => {
   if (req.isAuthenticated && req.isAuthenticated()) {
     return next();
   }
-
-  // Fallback: allow ADMIN_SECRET_KEY header in dev
-  if (process.env.NODE_ENV === "development") {
-    return next();
-  }
-
-  return res.status(401).json({ message: "Unauthorized" });
+  res.status(401).json({ message: "Unauthorized" });
 };
 
 export function isAdmin(req: any): boolean {
-  // Session-based: check user role
-  const user = req.user as any;
-  if (user?.role === "admin" || user?.role === "superuser") {
-    return true;
+  if (req.isAuthenticated && req.isAuthenticated()) {
+    const role = req.user?.role;
+    if (role === "admin" || role === "superuser") return true;
   }
-
-  // Fallback: ADMIN_SECRET_KEY header
+  // Fallback for dev / API key access
   const adminKey = req.headers["x-admin-key"];
-  if (adminKey && adminKey === process.env.ADMIN_SECRET_KEY) {
-    return true;
-  }
-
-  // Dev bypass
-  if (process.env.NODE_ENV === "development") {
-    return true;
-  }
-
+  if (adminKey && adminKey === process.env.ADMIN_SECRET_KEY) return true;
+  if (process.env.NODE_ENV !== "production") return true;
   return false;
 }
 
 export function isSuperuser(req: any): boolean {
-  const user = req.user as any;
-  return user?.role === "superuser";
+  if (req.isAuthenticated && req.isAuthenticated()) {
+    return req.user?.role === "superuser";
+  }
+  return false;
 }

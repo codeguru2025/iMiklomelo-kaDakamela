@@ -1,32 +1,15 @@
 import type { Express } from "express";
-import { getPresignedUploadUrl, isSpacesConfigured, getPublicUrl } from "../../spaces";
+import { getPresignedUploadUrl, isSpacesConfigured, getPublicUrl } from "../spaces";
 
 /**
- * Register object storage routes for file uploads via DigitalOcean Spaces.
+ * Register upload routes for file uploads via DigitalOcean Spaces.
  *
  * Upload flow:
  * 1. POST /api/uploads/request-url - Get a presigned URL for uploading
  * 2. Client uploads directly to the presigned URL (PUT)
  * 3. The objectPath / publicUrl is stored in the database
  */
-export function registerObjectStorageRoutes(app: Express): void {
-  /**
-   * Request a presigned URL for file upload.
-   *
-   * Request body (JSON):
-   * {
-   *   "name": "filename.jpg",
-   *   "size": 12345,
-   *   "contentType": "image/jpeg"
-   * }
-   *
-   * Response:
-   * {
-   *   "uploadURL": "https://bucket.nyc3.digitaloceanspaces.com/...",
-   *   "objectPath": "uploads/uuid.jpg",
-   *   "publicUrl": "https://bucket.nyc3.cdn.digitaloceanspaces.com/uploads/uuid.jpg"
-   * }
-   */
+export function registerUploadRoutes(app: Express): void {
   app.post("/api/uploads/request-url", async (req, res) => {
     try {
       if (!isSpacesConfigured()) {
@@ -60,10 +43,7 @@ export function registerObjectStorageRoutes(app: Express): void {
     }
   });
 
-  /**
-   * Redirect /objects/* paths to the Spaces CDN URL.
-   * This keeps backward compatibility with any stored /objects/... paths.
-   */
+  // Redirect /objects/* paths to the Spaces CDN URL (backward compat)
   app.get("/objects/:dir/:id", async (req, res) => {
     try {
       const objectKey = `${req.params.dir}/${req.params.id}`;
@@ -75,4 +55,3 @@ export function registerObjectStorageRoutes(app: Express): void {
     }
   });
 }
-
