@@ -10,9 +10,13 @@ const SUPERUSER_EMAIL = "ausiziba@gmail.com";
 export function getSession() {
   const sessionTtl = 7 * 24 * 60 * 60 * 1000; // 1 week
   const pgStore = connectPg(session);
+  const isProduction = process.env.NODE_ENV === "production";
+  console.log(`[Session Store] Environment: ${process.env.NODE_ENV}`);
+  console.log(`[Session Store] Using SSL: ${isProduction}`);
+  
   const sessionStore = new pgStore({
     conString: process.env.DATABASE_URL,
-    conObject: process.env.NODE_ENV === "production"
+    conObject: isProduction
       ? { ssl: { rejectUnauthorized: false } }
       : undefined,
     createTableIfMissing: true,
