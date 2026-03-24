@@ -17,7 +17,7 @@ services:
       - key: DATABASE_URL
         scope: RUN_TIME
         type: SECRET
-        value: "${db.DATABASE_URL}"
+        value: "${dakamela.DATABASE_URL}"
       - key: APP_URL
         scope: RUN_TIME
         value: https://dakamela-n729i.ondigitalocean.app
@@ -78,7 +78,7 @@ services:
 
 databases:
   - engine: PG
-    name: db
+    name: dakamela
     num_nodes: 1
     size: db-s-dev-database
     version: "16"
