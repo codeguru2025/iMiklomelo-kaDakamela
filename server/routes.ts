@@ -13,7 +13,7 @@ import { randomUUID } from "crypto";
 import { setupAuth, registerAuthRoutes, isAdmin } from "./replit_integrations/auth";
 import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
 import { sendRegistrationEmail, sendBookingConfirmationEmail, sendPaymentConfirmationEmail } from "./email";
-import { getPresignedReadUrl, isSpacesConfigured, objectExists } from "./spaces";
+import { getPresignedReadUrl, isSpacesConfigured } from "./spaces";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -44,24 +44,12 @@ export async function registerRoutes(
         return;
       }
 
-      const candidates = [`attached assets/${file}`, `attached_assets/${file}`];
-      let foundKey: string | undefined;
-
-      for (const key of candidates) {
-        if (await objectExists(key)) {
-          foundKey = key;
-          break;
-        }
-      }
-
-      if (!foundKey) {
-        res.status(404).json({ error: "Not found", attempted: candidates });
-        return;
-      }
-
-      const url = await getPresignedReadUrl(foundKey, 60 * 10);
+      // Files are stored under "attached assets/" in the Spaces bucket
+      const objectKey = `attached assets/${file}`;
+      const url = await getPresignedReadUrl(objectKey, 60 * 10);
       res.redirect(url);
     } catch (error) {
+      console.error("Asset proxy error:", error);
       res.status(500).json({ error: "Failed to load asset" });
     }
   });
