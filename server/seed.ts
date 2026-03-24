@@ -171,14 +171,14 @@ export async function seedDatabase() {
   await db.insert(companies).values(companyData);
   console.log("Companies seeded");
 
-  const pastEventData = [
+  const pastEventsData = [
     {
       year: 2025,
       edition: "11th Edition",
       title: "iMiklomelo kaDakamela Cultural Festival 2025",
-      summary: "The upcoming celebration continues the proud tradition of honoring achievers and preserving cultural heritage in the heart of KwaZulu-Natal.",
+      summary: "The upcoming celebration continues the proud tradition of honoring achievers and preserving cultural heritage in the heart of Nkayi.",
       eventDate: new Date("2025-12-12"),
-      location: "Dakamela Royal Grounds, KwaZulu-Natal",
+      location: "Dakamela Royal Grounds, Nkayi",
     },
     {
       year: 2024,
@@ -186,7 +186,7 @@ export async function seedDatabase() {
       title: "iMiklomelo kaDakamela Cultural Festival 2024",
       summary: "A landmark celebration marking a decade of honoring achievement and preserving cultural heritage. Over 4,000 attendees gathered to witness the conferment of awards by Chief Dakamela.",
       eventDate: new Date("2024-12-14"),
-      location: "Dakamela Royal Grounds, KwaZulu-Natal",
+      location: "Dakamela Royal Grounds, Nkayi",
     },
     {
       year: 2023,
@@ -194,7 +194,7 @@ export async function seedDatabase() {
       title: "iMiklomelo kaDakamela Cultural Festival 2023",
       summary: "A celebration of resilience and community spirit, bringing together families and dignitaries from across Southern Africa for three days of cultural celebration.",
       eventDate: new Date("2023-12-09"),
-      location: "Dakamela Royal Grounds, KwaZulu-Natal",
+      location: "Dakamela Royal Grounds, Nkayi",
     },
     {
       year: 2022,
@@ -202,7 +202,7 @@ export async function seedDatabase() {
       title: "iMiklomelo kaDakamela Cultural Festival 2022",
       summary: "The return to in-person gatherings after the pandemic, celebrated with renewed energy and commitment to cultural preservation.",
       eventDate: new Date("2022-12-10"),
-      location: "Dakamela Royal Grounds, KwaZulu-Natal",
+      location: "Dakamela Royal Grounds, Nkayi",
     },
   ];
 

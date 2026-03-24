@@ -162,14 +162,19 @@ export default function Home() {
         <div className="container mx-auto px-4">
           <div className="flex flex-col md:flex-row items-center justify-center gap-4 md:gap-8">
             <span className="text-sm text-muted-foreground uppercase tracking-wider font-medium">Main Sponsor</span>
-            <div className="bg-white rounded-xl px-8 py-4 shadow-sm">
+            <a 
+              href="https://www.kingdombluefuneral.co.zw" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="bg-white rounded-xl px-8 py-4 shadow-sm hover:shadow-md transition-shadow"
+            >
               <img 
                 src={kingdomBlueLogo} 
                 alt="KingdomBlue - Main Sponsor" 
                 className="h-12 md:h-16 w-auto object-contain"
                 data-testid="img-main-sponsor"
               />
-            </div>
+            </a>
           </div>
         </div>
       </section>
