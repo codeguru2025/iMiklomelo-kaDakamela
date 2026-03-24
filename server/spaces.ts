@@ -58,9 +58,12 @@ export async function getPresignedUploadUrl(options: {
 
   const uploadURL = await getSignedUrl(s3Client, command, { expiresIn: 900 });
 
+  // Encode the object key for URL (spaces become %20, etc.)
+  const encodedKey = encodeURIComponent(objectKey).replace(/%2F/g, '/');
+  
   const publicUrl = SPACES_CDN_ENDPOINT
-    ? `${SPACES_CDN_ENDPOINT}/${objectKey}`
-    : `${SPACES_ENDPOINT}/${SPACES_BUCKET}/${objectKey}`;
+    ? `${SPACES_CDN_ENDPOINT}/${encodedKey}`
+    : `${SPACES_ENDPOINT}/${SPACES_BUCKET}/${encodedKey}`;
 
   return { uploadURL, objectPath: objectKey, publicUrl };
 }
@@ -107,10 +110,13 @@ export async function objectExists(objectKey: string): Promise<boolean> {
  * Get the public CDN URL for an object.
  */
 export function getPublicUrl(objectKey: string): string {
+  // Encode the object key for URL (spaces become %20, etc.)
+  const encodedKey = encodeURIComponent(objectKey).replace(/%2F/g, '/');
+  
   if (SPACES_CDN_ENDPOINT) {
-    return `${SPACES_CDN_ENDPOINT}/${objectKey}`;
+    return `${SPACES_CDN_ENDPOINT}/${encodedKey}`;
   }
-  return `${SPACES_ENDPOINT}/${SPACES_BUCKET}/${objectKey}`;
+  return `${SPACES_ENDPOINT}/${SPACES_BUCKET}/${encodedKey}`;
 }
 
 /**
