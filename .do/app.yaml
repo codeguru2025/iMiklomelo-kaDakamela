@@ -67,6 +67,14 @@ services:
       - key: DO_SPACES_CDN_ENDPOINT
         scope: RUN_TIME
         value: https://dakamela-uploads.lon1.cdn.digitaloceanspaces.com
+      - key: GOOGLE_CLIENT_ID
+        scope: RUN_TIME
+        type: SECRET
+        value: change-me
+      - key: GOOGLE_CLIENT_SECRET
+        scope: RUN_TIME
+        type: SECRET
+        value: change-me
 
 databases:
   - engine: PG

@@ -2,15 +2,15 @@ import { sql } from "drizzle-orm";
 import { pgTable, text, varchar, integer, boolean, timestamp, decimal, pgEnum } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
+import { users } from "./models/auth";
 
-// Re-export auth models for Replit Auth integration
+// Re-export auth models (users table, User type, etc.)
 export * from "./models/auth";
 
 export const ticketStatusEnum = pgEnum("ticket_status", ["valid", "used", "expired", "cancelled"]);
 export const streamAccessStatusEnum = pgEnum("stream_access_status", ["pending", "active", "expired"]);
 export const videoPostStatusEnum = pgEnum("video_post_status", ["pending", "approved", "rejected"]);
 
-export const userRoleEnum = pgEnum("user_role", ["public", "attendee", "exhibitor", "sponsor", "admin"]);
 export const attendanceTypeEnum = pgEnum("attendance_type", ["standard", "vip", "delegation"]);
 export const depositStatusEnum = pgEnum("deposit_status", ["pending", "paid", "expired", "refunded"]);
 export const companyRoleEnum = pgEnum("company_role", ["exhibitor", "sponsor", "both"]);
@@ -19,16 +19,6 @@ export const applicationStatusEnum = pgEnum("application_status", ["pending", "a
 export const genderEnum = pgEnum("gender", ["male", "female", "other", "prefer_not_to_say"]);
 export const ageRangeEnum = pgEnum("age_range", ["under_18", "18_24", "25_34", "35_44", "45_54", "55_64", "65_plus"]);
 export const paymentStatusEnum = pgEnum("payment_status", ["pending", "processing", "paid", "failed", "cancelled"]);
-
-export const users = pgTable("users", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  username: text("username").notNull().unique(),
-  password: text("password").notNull(),
-  email: text("email").notNull().unique(),
-  fullName: text("full_name").notNull(),
-  role: userRoleEnum("role").default("public").notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
 
 export const attendees = pgTable("attendees", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -242,7 +232,6 @@ export const recordings = pgTable("recordings", {
 });
 
 // Insert schemas
-export const insertUserSchema = createInsertSchema(users).omit({ id: true, createdAt: true });
 export const insertAttendeeSchema = createInsertSchema(attendees).omit({ id: true, createdAt: true });
 export const insertCampSchema = createInsertSchema(camps).omit({ id: true });
 export const insertCampServiceSchema = createInsertSchema(campServices).omit({ id: true });
@@ -268,8 +257,6 @@ export const insertStreamSettingsSchema = createInsertSchema(streamSettings).omi
 export const insertRecordingSchema = createInsertSchema(recordings).omit({ id: true, createdAt: true });
 
 // Types
-export type InsertUser = z.infer<typeof insertUserSchema>;
-export type User = typeof users.$inferSelect;
 export type InsertAttendee = z.infer<typeof insertAttendeeSchema>;
 export type Attendee = typeof attendees.$inferSelect;
 export type InsertCamp = z.infer<typeof insertCampSchema>;

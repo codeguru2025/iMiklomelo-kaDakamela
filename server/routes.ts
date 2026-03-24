@@ -10,9 +10,10 @@ import {
 import { z } from "zod";
 import { initializePayment, checkPaymentStatus, isPaymentComplete, verifyPaynowHash } from "./paynow";
 import { randomUUID } from "crypto";
-import { setupAuth, registerAuthRoutes } from "./replit_integrations/auth";
+import { setupAuth, registerAuthRoutes, isAdmin } from "./replit_integrations/auth";
 import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
 import { sendRegistrationEmail, sendBookingConfirmationEmail, sendPaymentConfirmationEmail } from "./email";
+import { getPresignedReadUrl, objectExists } from "./spaces";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -25,6 +26,37 @@ export async function registerRoutes(
   
   // Register object storage routes for file uploads
   registerObjectStorageRoutes(app);
+
+  // Public asset proxy (handles private Spaces/CDN)
+  app.get("/api/assets/:file", async (req, res) => {
+    try {
+      const file = req.params.file;
+      if (!file || file.includes("..") || file.includes("/")) {
+        res.status(400).json({ error: "Invalid file" });
+        return;
+      }
+
+      const candidates = [`attached assets/${file}`, `attached_assets/${file}`];
+      let foundKey: string | undefined;
+
+      for (const key of candidates) {
+        if (await objectExists(key)) {
+          foundKey = key;
+          break;
+        }
+      }
+
+      if (!foundKey) {
+        res.status(404).json({ error: "Not found" });
+        return;
+      }
+
+      const url = await getPresignedReadUrl(foundKey, 60 * 10);
+      res.redirect(url);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to load asset" });
+    }
+  });
   
   // Attendees
   app.get("/api/attendees", async (req, res) => {
@@ -471,10 +503,7 @@ export async function registerRoutes(
     }
   });
 
-  const isAdminRequest = (req: any): boolean => {
-    const adminKey = req.headers["x-admin-key"];
-    return adminKey === process.env.ADMIN_SECRET_KEY || process.env.NODE_ENV === "development";
-  };
+  const isAdminRequest = (req: any): boolean => isAdmin(req);
 
   // Analytics (Admin)
   app.get("/api/admin/analytics", async (req, res) => {

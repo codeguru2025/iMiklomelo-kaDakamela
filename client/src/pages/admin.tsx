@@ -12,16 +12,19 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
 import { 
   Users, Tent, Building2, Award, Bell, Settings, Shield, 
   CheckCircle, XCircle, Clock, Plus, RefreshCw, Eye,
   BarChart3, Download, DollarSign, TrendingUp, UserCheck,
-  Globe, MapPin, Calendar, ScanLine, Upload, X, Tv, Video
+  Globe, MapPin, Calendar, ScanLine, Upload, X, Tv, Video,
+  LogIn, Crown, UserCog, Loader2
 } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Attendee, Reservation, Company, Announcement, PastEvent, StreamSettings, VideoFeedPost, Recording } from "@shared/schema";
+import type { User } from "@shared/models/auth";
 import { Image as ImageIcon } from "lucide-react";
 import { 
   PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, 
@@ -563,6 +566,70 @@ function StreamingManagement() {
 }
 
 export default function Admin() {
+  const { user, isLoading: authLoading, isAuthenticated, isAdmin: userIsAdmin, isSuperuser } = useAuth();
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <Loader2 className="w-8 h-8 animate-spin mx-auto text-primary" />
+          <p className="text-muted-foreground">Checking access...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/20 dark:to-orange-950/20">
+        <Card className="max-w-md w-full mx-4">
+          <CardHeader className="text-center">
+            <Shield className="w-12 h-12 mx-auto mb-2 text-primary" />
+            <CardTitle className="font-serif text-2xl">Admin Access</CardTitle>
+            <CardDescription>Sign in with Google to access the admin dashboard</CardDescription>
+          </CardHeader>
+          <CardContent className="text-center">
+            <a href="/api/login">
+              <Button size="lg" className="gap-2 w-full">
+                <LogIn className="w-5 h-5" />
+                Sign in with Google
+              </Button>
+            </a>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (!userIsAdmin) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/20 dark:to-orange-950/20">
+        <Card className="max-w-md w-full mx-4">
+          <CardHeader className="text-center">
+            <XCircle className="w-12 h-12 mx-auto mb-2 text-destructive" />
+            <CardTitle className="font-serif text-2xl">Access Denied</CardTitle>
+            <CardDescription>
+              You are signed in as <strong>{user?.email}</strong> but you do not have admin privileges.
+              Contact the superuser to request access.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="text-center">
+            <a href="/api/logout">
+              <Button variant="outline" className="gap-2">
+                <LogIn className="w-5 h-5" />
+                Sign out
+              </Button>
+            </a>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  return <AdminDashboard isSuperuser={isSuperuser} currentUser={user} />;
+}
+
+function AdminDashboard({ isSuperuser, currentUser }: { isSuperuser: boolean; currentUser: User | null | undefined }) {
   const { toast } = useToast();
   const [newAnnouncement, setNewAnnouncement] = useState({ title: "", content: "" });
   const [newPastEvent, setNewPastEvent] = useState({ 
@@ -691,7 +758,11 @@ export default function Admin() {
             </h1>
             <p className="text-muted-foreground mt-1">Manage event operations and applications</p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground hidden sm:inline">
+              {currentUser?.email}
+              {isSuperuser && <Badge variant="secondary" className="ml-2"><Crown className="w-3 h-3 mr-1" />Superuser</Badge>}
+            </span>
             <Button variant="outline" size="sm" onClick={handleExportCSV} data-testid="button-export">
               <Download className="w-4 h-4 mr-2" />
               Export CSV
@@ -703,6 +774,12 @@ export default function Admin() {
               <RefreshCw className="w-4 h-4 mr-2" />
               Refresh
             </Button>
+            <a href="/api/logout">
+              <Button variant="outline" size="sm">
+                <LogIn className="w-4 h-4 mr-2" />
+                Sign out
+              </Button>
+            </a>
           </div>
         </div>
 
@@ -723,7 +800,7 @@ export default function Admin() {
         </div>
 
         <Tabs defaultValue="analytics" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-8 max-w-5xl">
+          <TabsList className={`grid w-full ${isSuperuser ? 'grid-cols-9' : 'grid-cols-8'} max-w-5xl`}>
             <TabsTrigger value="analytics" data-testid="tab-analytics">
               <BarChart3 className="w-4 h-4 mr-2" />
               Analytics
@@ -756,6 +833,12 @@ export default function Admin() {
               <Settings className="w-4 h-4 mr-2" />
               Settings
             </TabsTrigger>
+            {isSuperuser && (
+              <TabsTrigger value="users" data-testid="tab-users">
+                <UserCog className="w-4 h-4 mr-2" />
+                Users
+              </TabsTrigger>
+            )}
           </TabsList>
 
           <TabsContent value="analytics">
@@ -1434,8 +1517,130 @@ export default function Admin() {
               </CardContent>
             </Card>
           </TabsContent>
+
+          {isSuperuser && (
+            <TabsContent value="users">
+              <UserManagement />
+            </TabsContent>
+          )}
         </Tabs>
       </div>
     </div>
+  );
+}
+
+function UserManagement() {
+  const { toast } = useToast();
+  const { data: users, isLoading } = useQuery<User[]>({
+    queryKey: ["/api/admin/users"],
+  });
+
+  const updateRoleMutation = useMutation({
+    mutationFn: async ({ id, role }: { id: string; role: string }) => {
+      return apiRequest("PUT", `/api/admin/users/${id}/role`, { role });
+    },
+    onSuccess: () => {
+      toast({ title: "User role updated" });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Failed to update role", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const roleLabel = (role: string) => {
+    switch (role) {
+      case "superuser": return "Superuser";
+      case "admin": return "Admin";
+      default: return "Public";
+    }
+  };
+
+  const roleBadgeVariant = (role: string) => {
+    switch (role) {
+      case "superuser": return "default" as const;
+      case "admin": return "secondary" as const;
+      default: return "outline" as const;
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <UserCog className="w-5 h-5" />
+          User Management
+        </CardTitle>
+        <CardDescription>Manage admin access. Only users who have signed in via Google appear here.</CardDescription>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <Skeleton className="h-32 w-full" />
+        ) : !users?.length ? (
+          <p className="text-muted-foreground text-sm">No users found.</p>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Name</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Role</TableHead>
+                <TableHead>Joined</TableHead>
+                <TableHead>Action</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {users.map((u) => (
+                <TableRow key={u.id}>
+                  <TableCell className="font-medium">
+                    <div className="flex items-center gap-2">
+                      {u.profileImageUrl && (
+                        <img src={u.profileImageUrl} alt="" className="w-6 h-6 rounded-full" />
+                      )}
+                      {u.firstName} {u.lastName}
+                    </div>
+                  </TableCell>
+                  <TableCell>{u.email}</TableCell>
+                  <TableCell>
+                    <Badge variant={roleBadgeVariant(u.role)}>
+                      {u.role === "superuser" && <Crown className="w-3 h-3 mr-1" />}
+                      {roleLabel(u.role)}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
+                    {u.createdAt ? new Date(u.createdAt).toLocaleDateString() : "—"}
+                  </TableCell>
+                  <TableCell>
+                    {u.role === "superuser" ? (
+                      <span className="text-xs text-muted-foreground">Protected</span>
+                    ) : u.role === "admin" ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => updateRoleMutation.mutate({ id: u.id, role: "public" })}
+                        disabled={updateRoleMutation.isPending}
+                      >
+                        <XCircle className="w-3 h-3 mr-1" />
+                        Revoke Admin
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="default"
+                        size="sm"
+                        onClick={() => updateRoleMutation.mutate({ id: u.id, role: "admin" })}
+                        disabled={updateRoleMutation.isPending}
+                      >
+                        <Shield className="w-3 h-3 mr-1" />
+                        Make Admin
+                      </Button>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+      </CardContent>
+    </Card>
   );
 }

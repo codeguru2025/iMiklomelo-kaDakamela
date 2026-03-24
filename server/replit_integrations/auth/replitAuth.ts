@@ -1,8 +1,11 @@
 import session from "express-session";
 import type { Express, RequestHandler } from "express";
 import connectPg from "connect-pg-simple";
+import passport from "passport";
+import { Strategy as GoogleStrategy } from "passport-google-oauth20";
+import { authStorage } from "./storage";
 
-const isReplitEnv = !!(process.env.REPL_ID);
+const SUPERUSER_EMAIL = "ausiziba@gmail.com";
 
 export function getSession() {
   const sessionTtl = 7 * 24 * 60 * 60 * 1000; // 1 week
@@ -29,160 +32,131 @@ export function getSession() {
 export async function setupAuth(app: Express) {
   app.set("trust proxy", 1);
   app.use(getSession());
+  app.use(passport.initialize());
+  app.use(passport.session());
 
-  if (isReplitEnv) {
-    // Replit OIDC auth — only available when running on Replit
-    try {
-      const client = await import("openid-client");
-      const { Strategy } = await import("openid-client/passport");
-      const passport = (await import("passport")).default;
-      const memoize = (await import("memoizee")).default;
-      const { authStorage } = await import("./storage");
+  const clientID = process.env.GOOGLE_CLIENT_ID;
+  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
 
-      app.use(passport.initialize());
-      app.use(passport.session());
+  if (clientID && clientSecret) {
+    const callbackURL = `${process.env.APP_URL || "http://localhost:5000"}/api/auth/google/callback`;
 
-      const getOidcConfig = memoize(
-        async () => {
-          return await client.discovery(
-            new URL(process.env.ISSUER_URL ?? "https://replit.com/oidc"),
-            process.env.REPL_ID!
-          );
-        },
-        { maxAge: 3600 * 1000 }
-      );
+    passport.use(
+      new GoogleStrategy(
+        { clientID, clientSecret, callbackURL },
+        async (_accessToken, _refreshToken, profile, done) => {
+          try {
+            const email = profile.emails?.[0]?.value || "";
+            const isSuperuser = email.toLowerCase() === SUPERUSER_EMAIL;
 
-      const config = await getOidcConfig();
+            // Check if user already exists to preserve their role
+            const existingUser = await authStorage.getUserByEmail(email);
 
-      const verify = async (
-        tokens: any,
-        verified: any
-      ) => {
-        const user: any = {};
-        user.claims = tokens.claims();
-        user.access_token = tokens.access_token;
-        user.refresh_token = tokens.refresh_token;
-        user.expires_at = user.claims?.exp;
-        await authStorage.upsertUser({
-          id: user.claims["sub"],
-          email: user.claims["email"],
-          firstName: user.claims["first_name"],
-          lastName: user.claims["last_name"],
-          profileImageUrl: user.claims["profile_image_url"],
-        });
-        verified(null, user);
-      };
+            const role = isSuperuser
+              ? "superuser"
+              : existingUser?.role === "admin" || existingUser?.role === "superuser"
+                ? existingUser.role
+                : "public";
 
-      const registeredStrategies = new Set<string>();
+            const user = await authStorage.upsertUser({
+              id: profile.id,
+              email,
+              firstName: profile.name?.givenName || null,
+              lastName: profile.name?.familyName || null,
+              profileImageUrl: profile.photos?.[0]?.value || null,
+              role,
+            });
 
-      const ensureStrategy = (domain: string) => {
-        const strategyName = `replitauth:${domain}`;
-        if (!registeredStrategies.has(strategyName)) {
-          const strategy = new Strategy(
-            {
-              name: strategyName,
-              config,
-              scope: "openid email profile offline_access",
-              callbackURL: `https://${domain}/api/callback`,
-            },
-            verify as any
-          );
-          passport.use(strategy);
-          registeredStrategies.add(strategyName);
+            done(null, user);
+          } catch (error) {
+            done(error as Error);
+          }
         }
-      };
+      )
+    );
 
-      passport.serializeUser((user: Express.User, cb) => cb(null, user));
-      passport.deserializeUser((user: Express.User, cb) => cb(null, user));
+    passport.serializeUser((user: any, done) => {
+      done(null, user.id);
+    });
 
-      app.get("/api/login", (req, res, next) => {
-        ensureStrategy(req.hostname);
-        passport.authenticate(`replitauth:${req.hostname}`, {
-          prompt: "login consent",
-          scope: ["openid", "email", "profile", "offline_access"],
-        })(req, res, next);
-      });
+    passport.deserializeUser(async (id: string, done) => {
+      try {
+        const user = await authStorage.getUser(id);
+        done(null, user || null);
+      } catch (error) {
+        done(error);
+      }
+    });
 
-      app.get("/api/callback", (req, res, next) => {
-        ensureStrategy(req.hostname);
-        passport.authenticate(`replitauth:${req.hostname}`, {
-          successReturnToOrRedirect: "/",
-          failureRedirect: "/api/login",
-        })(req, res, next);
-      });
+    app.get("/api/login", passport.authenticate("google", {
+      scope: ["profile", "email"],
+      prompt: "select_account",
+    }));
 
-      app.get("/api/logout", (req, res) => {
-        req.logout(() => {
-          res.redirect(
-            client.buildEndSessionUrl(config, {
-              client_id: process.env.REPL_ID!,
-              post_logout_redirect_uri: `${req.protocol}://${req.hostname}`,
-            }).href
-          );
+    app.get(
+      "/api/auth/google/callback",
+      passport.authenticate("google", { failureRedirect: "/" }),
+      (_req, res) => {
+        res.redirect("/admin");
+      }
+    );
+
+    app.get("/api/logout", (req, res) => {
+      req.logout(() => {
+        req.session.destroy(() => {
+          res.redirect("/");
         });
       });
+    });
 
-      console.log("[auth] Replit OIDC auth enabled");
-    } catch (error) {
-      console.warn("[auth] Failed to initialize Replit auth:", error);
-    }
+    console.log("[auth] Google OAuth enabled");
   } else {
-    // Non-Replit environment: stub auth routes
+    // Dev fallback: no Google OAuth configured
     app.get("/api/login", (_req, res) => {
       res.redirect("/admin");
     });
     app.get("/api/logout", (_req, res) => {
       res.redirect("/");
     });
-    console.log("[auth] Running without Replit OIDC — admin uses ADMIN_SECRET_KEY header");
+    console.log("[auth] No Google OAuth credentials — admin uses ADMIN_SECRET_KEY header in dev");
   }
 }
 
-export const isAuthenticated: RequestHandler = async (req, res, next) => {
-  if (!isReplitEnv) {
-    // In non-Replit environments, auth check is a no-op for this middleware.
-    // Admin routes use x-admin-key header instead.
+export const isAuthenticated: RequestHandler = (req, res, next) => {
+  if (req.isAuthenticated && req.isAuthenticated()) {
     return next();
   }
 
-  const user = req.user as any;
-
-  if (!req.isAuthenticated || !req.isAuthenticated() || !user?.expires_at) {
-    return res.status(401).json({ message: "Unauthorized" });
-  }
-
-  const now = Math.floor(Date.now() / 1000);
-  if (now <= user.expires_at) {
+  // Fallback: allow ADMIN_SECRET_KEY header in dev
+  if (process.env.NODE_ENV === "development") {
     return next();
   }
 
-  const refreshToken = user.refresh_token;
-  if (!refreshToken) {
-    res.status(401).json({ message: "Unauthorized" });
-    return;
-  }
-
-  try {
-    const client = await import("openid-client");
-    const memoize = (await import("memoizee")).default;
-    const getOidcConfig = memoize(
-      async () => {
-        return await client.discovery(
-          new URL(process.env.ISSUER_URL ?? "https://replit.com/oidc"),
-          process.env.REPL_ID!
-        );
-      },
-      { maxAge: 3600 * 1000 }
-    );
-    const config = await getOidcConfig();
-    const tokenResponse = await client.refreshTokenGrant(config, refreshToken);
-    user.claims = tokenResponse.claims();
-    user.access_token = tokenResponse.access_token;
-    user.refresh_token = tokenResponse.refresh_token;
-    user.expires_at = user.claims?.exp;
-    return next();
-  } catch (error) {
-    res.status(401).json({ message: "Unauthorized" });
-    return;
-  }
+  return res.status(401).json({ message: "Unauthorized" });
 };
+
+export function isAdmin(req: any): boolean {
+  // Session-based: check user role
+  const user = req.user as any;
+  if (user?.role === "admin" || user?.role === "superuser") {
+    return true;
+  }
+
+  // Fallback: ADMIN_SECRET_KEY header
+  const adminKey = req.headers["x-admin-key"];
+  if (adminKey && adminKey === process.env.ADMIN_SECRET_KEY) {
+    return true;
+  }
+
+  // Dev bypass
+  if (process.env.NODE_ENV === "development") {
+    return true;
+  }
+
+  return false;
+}
+
+export function isSuperuser(req: any): boolean {
+  const user = req.user as any;
+  return user?.role === "superuser";
+}
