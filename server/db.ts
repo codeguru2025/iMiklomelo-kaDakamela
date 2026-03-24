@@ -18,10 +18,18 @@ const isDODatabase = process.env.DATABASE_URL?.includes('sslmode=require') ||
 console.log(`[Database] Environment: ${process.env.NODE_ENV}`);
 console.log(`[Database] Using SSL: ${isProduction || isDODatabase}`);
 
+// Configure SSL for production/DO databases
+let sslConfig: any = false;
+if (isProduction || isDODatabase) {
+  sslConfig = {
+    rejectUnauthorized: false,
+  };
+  console.log(`[Database] SSL Config:`, JSON.stringify(sslConfig));
+}
+
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  // Always use SSL with rejectUnauthorized: false in production or for DO databases
-  ssl: (isProduction || isDODatabase) ? { rejectUnauthorized: false } : false,
+  ssl: sslConfig,
 });
 
 export const db = drizzle(pool, { schema });
