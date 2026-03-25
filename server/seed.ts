@@ -137,35 +137,6 @@ export async function seedDatabase() {
       applicationStatus: "approved" as const,
       isPrimarySponsor: true,
     },
-    {
-      name: "Chibikhulu",
-      description: "Supporting African excellence and cultural preservation through strategic partnerships.",
-      contactEmail: "info@chibikhulu.co.za",
-      contactPhone: "+27 11 555 7890",
-      logoUrl: "/api/assets/CK_Logo_1770117291903.jpeg",
-      role: "sponsor" as const,
-      sponsorshipTier: "Gold",
-      applicationStatus: "approved" as const,
-      isPrimarySponsor: false,
-    },
-    {
-      name: "Ubuntu Crafts Collective",
-      description: "Showcasing the finest traditional and contemporary African crafts and artwork.",
-      contactEmail: "hello@ubuntucrafts.co.za",
-      role: "exhibitor" as const,
-      exhibitionCategory: "cultural_crafts" as const,
-      applicationStatus: "approved" as const,
-      isPrimarySponsor: false,
-    },
-    {
-      name: "Imbali Fashion House",
-      description: "Modern African fashion inspired by traditional designs and sustainable practices.",
-      contactEmail: "contact@imbalifashion.com",
-      role: "exhibitor" as const,
-      exhibitionCategory: "fashion" as const,
-      applicationStatus: "approved" as const,
-      isPrimarySponsor: false,
-    },
   ];
 
   await db.insert(companies).values(companyData);
@@ -178,7 +149,7 @@ export async function seedDatabase() {
       title: "iMiklomelo kaDakamela Cultural Festival 2025",
       summary: "The upcoming celebration continues the proud tradition of honoring achievers and preserving cultural heritage in the heart of Nkayi.",
       eventDate: new Date("2025-12-12"),
-      location: "Dakamela Royal Grounds, Nkayi",
+      location: "Dakamela Hall, Nkayi District, Zimbabwe",
     },
     {
       year: 2024,
@@ -186,7 +157,7 @@ export async function seedDatabase() {
       title: "iMiklomelo kaDakamela Cultural Festival 2024",
       summary: "A landmark celebration marking a decade of honoring achievement and preserving cultural heritage. Over 4,000 attendees gathered to witness the conferment of awards by Chief Dakamela.",
       eventDate: new Date("2024-12-14"),
-      location: "Dakamela Royal Grounds, Nkayi",
+      location: "Dakamela Hall, Nkayi District, Zimbabwe",
     },
     {
       year: 2023,
@@ -194,7 +165,7 @@ export async function seedDatabase() {
       title: "iMiklomelo kaDakamela Cultural Festival 2023",
       summary: "A celebration of resilience and community spirit, bringing together families and dignitaries from across Southern Africa for three days of cultural celebration.",
       eventDate: new Date("2023-12-09"),
-      location: "Dakamela Royal Grounds, Nkayi",
+      location: "Dakamela Hall, Nkayi District, Zimbabwe",
     },
     {
       year: 2022,
@@ -202,7 +173,7 @@ export async function seedDatabase() {
       title: "iMiklomelo kaDakamela Cultural Festival 2022",
       summary: "The return to in-person gatherings after the pandemic, celebrated with renewed energy and commitment to cultural preservation.",
       eventDate: new Date("2022-12-10"),
-      location: "Dakamela Royal Grounds, Nkayi",
+      location: "Dakamela Hall, Nkayi District, Zimbabwe",
     },
   ];
 

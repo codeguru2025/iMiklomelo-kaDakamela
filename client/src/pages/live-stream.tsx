@@ -199,21 +199,12 @@ export default function LiveStream() {
       <div className="container mx-auto px-4 py-12">
         <div className="grid lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2">
-            {hasAccess && isLive ? (
+            {hasAccess && streamSettings?.streamUrl ? (
               <Card className="overflow-hidden">
-                {streamSettings?.streamUrl ? (
-                  <StreamPlayer
-                    url={streamSettings.streamUrl}
-                    title={streamSettings?.streamTitle || "Live Stream"}
-                  />
-                ) : (
-                  <div className="aspect-video bg-black flex items-center justify-center text-white">
-                    <div className="text-center">
-                      <Video className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                      <p>Stream will begin shortly...</p>
-                    </div>
-                  </div>
-                )}
+                <StreamPlayer
+                  url={streamSettings.streamUrl}
+                  title={streamSettings?.streamTitle || "Live Stream"}
+                />
                 <CardHeader>
                   <div className="flex items-start justify-between">
                     <div>
@@ -227,11 +218,11 @@ export default function LiveStream() {
                   </div>
                 </CardHeader>
               </Card>
-            ) : hasAccess && !isLive ? (
+            ) : hasAccess && !streamSettings?.streamUrl ? (
               <Card>
                 <CardContent className="py-16 text-center">
                   <Clock className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
-                  <h3 className="font-serif text-2xl font-bold mb-2">Stream Not Active</h3>
+                  <h3 className="font-serif text-2xl font-bold mb-2">Stream Not Available Yet</h3>
                   <p className="text-muted-foreground mb-4">
                     The live stream will begin on April 3-6, 2026. {isFree ? "This is a free stream — you'll be able to watch when it starts." : "You have access and will be able to watch when it starts."}
                   </p>

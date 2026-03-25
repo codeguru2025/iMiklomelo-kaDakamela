@@ -1209,6 +1209,7 @@ export async function registerRoutes(
   const updateStreamSettingsSchema = z.object({
     streamUrl: z.string().optional(),
     streamTitle: z.string().optional(),
+    streamDescription: z.string().optional(),
     isLive: z.boolean().optional(),
     streamPrice: z.string().optional(),
     allowVideoFeed: z.boolean().optional(),

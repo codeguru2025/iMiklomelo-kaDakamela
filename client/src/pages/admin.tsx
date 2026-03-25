@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -283,17 +283,22 @@ function StreamingManagement() {
     },
   });
 
-  // Sync settings from server
-  if (settings && !settingsLoading && streamSettings.streamUrl === "" && settings.streamUrl) {
-    setStreamSettings({
-      streamUrl: settings.streamUrl || "",
-      streamTitle: settings.streamTitle || "iMiklomelo kaDakamela Cultural Festival 2026 - Live Stream",
-      streamDescription: settings.streamDescription || "",
-      isLive: settings.isLive || false,
-      streamPrice: settings.streamPrice || "15.00",
-      allowVideoFeed: settings.allowVideoFeed || false,
-    });
-  }
+  // Sync settings from server — track whether we've initialized from server data
+  const [initialized, setInitialized] = useState(false);
+  
+  useEffect(() => {
+    if (settings && !settingsLoading && !initialized) {
+      setStreamSettings({
+        streamUrl: settings.streamUrl || "",
+        streamTitle: settings.streamTitle || "iMiklomelo kaDakamela Cultural Festival 2026 - Live Stream",
+        streamDescription: settings.streamDescription || "",
+        isLive: settings.isLive || false,
+        streamPrice: settings.streamPrice || "15.00",
+        allowVideoFeed: settings.allowVideoFeed || false,
+      });
+      setInitialized(true);
+    }
+  }, [settings, settingsLoading, initialized]);
 
   const pendingPosts = videoPosts?.filter(p => p.status === "pending") || [];
 
