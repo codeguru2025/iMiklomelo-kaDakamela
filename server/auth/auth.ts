@@ -11,11 +11,18 @@ export function getSession() {
   const sessionTtl = 7 * 24 * 60 * 60 * 1000; // 1 week
   const pgStore = connectPg(session);
   const isProduction = process.env.NODE_ENV === "production";
+  const databaseUrl = process.env.DATABASE_URL;
+  
   console.log(`[Session Store] Environment: ${process.env.NODE_ENV}`);
   console.log(`[Session Store] Using SSL: ${isProduction}`);
+  console.log(`[Session Store] Database URL exists: ${!!databaseUrl}`);
+  
+  if (!databaseUrl) {
+    throw new Error("DATABASE_URL environment variable is not set");
+  }
   
   const sessionStore = new pgStore({
-    conString: process.env.DATABASE_URL,
+    conString: databaseUrl,
     conObject: isProduction
       ? { ssl: { rejectUnauthorized: false } }
       : undefined,
