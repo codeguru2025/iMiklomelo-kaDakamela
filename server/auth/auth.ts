@@ -5,7 +5,7 @@ import passport from "passport";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import { authStorage } from "./storage";
 
-const SUPERUSER_EMAIL = "ausiziba@gmail.com";
+const SUPERUSER_EMAIL = process.env.SUPERUSER_EMAIL || "";
 
 export function getSession() {
   const sessionTtl = 7 * 24 * 60 * 60 * 1000; // 1 week
@@ -104,7 +104,8 @@ export async function setupAuth(app: Express) {
     app.get(
       "/api/auth/google/callback",
       passport.authenticate("google", { failureRedirect: "/" }),
-      (_req, res) => {
+      (req: any, res) => {
+        console.log("[auth] Google callback successful, user:", req.user?.email, "role:", req.user?.role);
         res.redirect("/admin");
       }
     );

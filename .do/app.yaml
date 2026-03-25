@@ -28,6 +28,9 @@ services:
         scope: RUN_TIME
         type: SECRET
         value: change-me
+      - key: SUPERUSER_EMAIL
+        scope: RUN_TIME
+        value: ausiziba@gmail.com
       - key: ADMIN_SECRET_KEY
         scope: RUN_TIME
         type: SECRET
