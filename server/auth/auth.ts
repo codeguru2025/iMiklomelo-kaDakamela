@@ -54,17 +54,24 @@ export async function setupAuth(app: Express) {
         { clientID, clientSecret, callbackURL },
         async (_accessToken, _refreshToken, profile, done) => {
           try {
+            console.log("[auth] Google OAuth callback received for profile:", profile.id);
             const email = profile.emails?.[0]?.value || "";
-            const isSuperuser = email.toLowerCase() === SUPERUSER_EMAIL;
+            console.log("[auth] User email:", email);
+            
+            const isSuperuser = email.toLowerCase() === SUPERUSER_EMAIL.toLowerCase();
+            console.log("[auth] Is superuser?", isSuperuser, "(comparing", email.toLowerCase(), "with", SUPERUSER_EMAIL.toLowerCase() + ")");
 
             // Check if user already exists to preserve their role
             const existingUser = await authStorage.getUserByEmail(email);
+            console.log("[auth] Existing user:", existingUser ? "found" : "not found");
 
             const role = isSuperuser
               ? "superuser"
               : existingUser?.role === "admin" || existingUser?.role === "superuser"
                 ? existingUser.role
                 : "public";
+
+            console.log("[auth] Assigning role:", role);
 
             const user = await authStorage.upsertUser({
               id: profile.id,
@@ -75,8 +82,10 @@ export async function setupAuth(app: Express) {
               role,
             });
 
+            console.log("[auth] User upserted successfully:", user.email, "with role:", user.role);
             done(null, user);
           } catch (error) {
+            console.error("[auth] Error in Google OAuth strategy:", error);
             done(error as Error);
           }
         }
@@ -106,7 +115,15 @@ export async function setupAuth(app: Express) {
       passport.authenticate("google", { failureRedirect: "/" }),
       (req: any, res) => {
         console.log("[auth] Google callback successful, user:", req.user?.email, "role:", req.user?.role);
-        res.redirect("/admin");
+        // Save session before redirecting to prevent 404
+        req.session.save((err: any) => {
+          if (err) {
+            console.error("[auth] Session save error:", err);
+            return res.redirect("/?error=session");
+          }
+          console.log("[auth] Session saved, redirecting to /admin");
+          res.redirect("/admin");
+        });
       }
     );
 
