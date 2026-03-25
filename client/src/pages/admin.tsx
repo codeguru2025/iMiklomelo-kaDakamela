@@ -201,10 +201,12 @@ function StreamingManagement() {
   const [streamSettings, setStreamSettings] = useState({
     streamUrl: "",
     streamTitle: "iMiklomelo kaDakamela Cultural Festival 2026 - Live Stream",
+    streamDescription: "",
     isLive: false,
     streamPrice: "15.00",
     allowVideoFeed: false,
   });
+  const isFreeStream = parseFloat(streamSettings.streamPrice) === 0;
   const [newRecording, setNewRecording] = useState({
     title: "",
     description: "",
@@ -286,6 +288,7 @@ function StreamingManagement() {
     setStreamSettings({
       streamUrl: settings.streamUrl || "",
       streamTitle: settings.streamTitle || "iMiklomelo kaDakamela Cultural Festival 2026 - Live Stream",
+      streamDescription: settings.streamDescription || "",
       isLive: settings.isLive || false,
       streamPrice: settings.streamPrice || "15.00",
       allowVideoFeed: settings.allowVideoFeed || false,
@@ -358,15 +361,52 @@ function StreamingManagement() {
               />
             </div>
             <div>
-              <Label>Stream Price (USD)</Label>
+              <Label>Stream Description</Label>
               <Input
-                type="number"
-                step="0.01"
-                value={streamSettings.streamPrice}
-                onChange={(e) => setStreamSettings(prev => ({ ...prev, streamPrice: e.target.value }))}
-                placeholder="15.00"
-                data-testid="input-stream-price"
+                value={streamSettings.streamDescription}
+                onChange={(e) => setStreamSettings(prev => ({ ...prev, streamDescription: e.target.value }))}
+                placeholder="Brief description of the stream"
+                data-testid="input-stream-description"
               />
+            </div>
+            <div>
+              <Label>Access Type</Label>
+              <div className="flex items-center gap-4 mt-2">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="accessType"
+                    checked={isFreeStream}
+                    onChange={() => setStreamSettings(prev => ({ ...prev, streamPrice: "0.00" }))}
+                    className="w-4 h-4 accent-primary"
+                  />
+                  <span className="text-sm font-medium">Free</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="accessType"
+                    checked={!isFreeStream}
+                    onChange={() => setStreamSettings(prev => ({ ...prev, streamPrice: "15.00" }))}
+                    className="w-4 h-4 accent-primary"
+                  />
+                  <span className="text-sm font-medium">Paid</span>
+                </label>
+              </div>
+              {!isFreeStream && (
+                <div className="mt-2">
+                  <Label>Stream Price (USD)</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0.01"
+                    value={streamSettings.streamPrice}
+                    onChange={(e) => setStreamSettings(prev => ({ ...prev, streamPrice: e.target.value }))}
+                    placeholder="15.00"
+                    data-testid="input-stream-price"
+                  />
+                </div>
+              )}
             </div>
             <div className="flex items-center gap-4 pt-2">
               <label className="flex items-center gap-2 cursor-pointer">
@@ -390,6 +430,32 @@ function StreamingManagement() {
                 <span className="text-sm font-medium">Allow Video Feed Posts</span>
               </label>
             </div>
+            {streamSettings.isLive && streamSettings.streamUrl && (
+              <div className="p-3 bg-muted rounded-md">
+                <Label className="text-xs text-muted-foreground">Shareable Stream Link</Label>
+                <div className="flex items-center gap-2 mt-1">
+                  <Input
+                    readOnly
+                    value={`${window.location.origin}/live-stream`}
+                    className="text-sm bg-background"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      navigator.clipboard.writeText(`${window.location.origin}/live-stream`);
+                      toast({ title: "Link copied!", description: "Share this link with your audience." });
+                    }}
+                  >
+                    Copy
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {isFreeStream ? "Anyone with this link can watch for free" : `Viewers will be prompted to pay $${streamSettings.streamPrice} USD`}
+                </p>
+              </div>
+            )}
             <Button
               onClick={() => updateSettingsMutation.mutate(streamSettings)}
               disabled={updateSettingsMutation.isPending}

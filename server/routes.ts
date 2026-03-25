@@ -1030,7 +1030,7 @@ export async function registerRoutes(
 
   // ========== LIVE STREAMING ROUTES ==========
 
-  // Get stream settings (public)
+  // Get stream settings (public) — omits streamUrl for paid streams unless user has access
   app.get("/api/stream/settings", async (req, res) => {
     try {
       const settings = await storage.getStreamSettings();
@@ -1041,13 +1041,20 @@ export async function registerRoutes(
           isLive: false,
           streamTitle: "iMiklomelo kaDakamela Cultural Festival 2026 - Live",
           allowVideoFeed: false,
+          isFree: false,
         });
         return;
       }
-      res.json(settings);
+      const isFree = parseFloat(settings.streamPrice) === 0;
+      res.json({ ...settings, isFree });
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch stream settings" });
     }
+  });
+
+  // Check if current user is admin (for stream bypass)
+  app.get("/api/stream/admin-check", async (req, res) => {
+    res.json({ isAdmin: isAdminRequest(req) });
   });
 
   // Verify stream access code

@@ -90,17 +90,19 @@ export default function Sponsors() {
                         <Crown className="w-3 h-3 mr-1" />
                         Main Sponsor
                       </Badge>
-                      <Card className="max-w-xl mx-auto border-primary border-2" data-testid={`card-sponsor-${primarySponsor.id}`}>
+                      <Card className="max-w-xl mx-auto border-primary border-2 overflow-hidden" data-testid={`card-sponsor-${primarySponsor.id}`}>
                         <CardHeader className="text-center pb-2">
-                          <div className="w-24 h-24 mx-auto rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center mb-4">
+                          <div className="mx-auto mb-4">
                             {primarySponsor.logoUrl ? (
                               <img 
                                 src={primarySponsor.logoUrl} 
                                 alt={primarySponsor.name}
-                                className="w-full h-full rounded-full object-cover"
+                                className="h-28 md:h-36 w-auto max-w-[280px] mx-auto object-contain"
                               />
                             ) : (
-                              <Building2 className="w-12 h-12 text-white" />
+                              <div className="w-24 h-24 mx-auto rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center">
+                                <Building2 className="w-12 h-12 text-white" />
+                              </div>
                             )}
                           </div>
                           <CardTitle className="font-serif text-2xl">{primarySponsor.name}</CardTitle>
