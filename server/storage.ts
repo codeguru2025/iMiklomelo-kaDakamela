@@ -12,12 +12,13 @@ import {
   type StreamSettings, type InsertStreamSettings, type Recording, type InsertRecording
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, or } from "drizzle-orm";
+import { eq, desc, or, sql, inArray } from "drizzle-orm";
 
 export interface IStorage {
   // Attendees
   getAttendees(): Promise<Attendee[]>;
   getAttendee(id: string): Promise<Attendee | undefined>;
+  getAttendeesByIds(ids: string[]): Promise<Attendee[]>;
   createAttendee(attendee: InsertAttendee): Promise<Attendee>;
 
   // Camps
@@ -53,7 +54,7 @@ export interface IStorage {
   getPastEvents(): Promise<PastEvent[]>;
   getPastEvent(id: string): Promise<PastEvent | undefined>;
   createPastEvent(event: InsertPastEvent): Promise<PastEvent>;
-  updatePastEvent(id: string, data: { year?: number; edition?: string; title?: string; summary?: string; description?: string; imageUrl?: string | null }): Promise<PastEvent | undefined>;
+  updatePastEvent(id: string, data: { year?: number; edition?: string; title?: string; summary?: string; imageUrl?: string | null }): Promise<PastEvent | undefined>;
 
   // Awardees
   getAwardees(): Promise<Awardee[]>;
@@ -115,6 +116,11 @@ export class DatabaseStorage implements IStorage {
   async getAttendee(id: string): Promise<Attendee | undefined> {
     const [attendee] = await db.select().from(attendees).where(eq(attendees.id, id));
     return attendee;
+  }
+
+  async getAttendeesByIds(ids: string[]): Promise<Attendee[]> {
+    if (ids.length === 0) return [];
+    return db.select().from(attendees).where(inArray(attendees.id, ids));
   }
 
   async createAttendee(attendee: InsertAttendee): Promise<Attendee> {
@@ -232,7 +238,7 @@ export class DatabaseStorage implements IStorage {
     return created;
   }
 
-  async updatePastEvent(id: string, data: { year?: number; edition?: string; title?: string; summary?: string; description?: string; imageUrl?: string | null }): Promise<PastEvent | undefined> {
+  async updatePastEvent(id: string, data: { year?: number; edition?: string; title?: string; summary?: string; imageUrl?: string | null }): Promise<PastEvent | undefined> {
     const [updated] = await db.update(pastEvents).set(data).where(eq(pastEvents.id, id)).returning();
     return updated;
   }
@@ -418,10 +424,8 @@ export class DatabaseStorage implements IStorage {
   }
 
   async likeVideoPost(id: string): Promise<VideoFeedPost | undefined> {
-    const post = await db.select().from(videoFeedPosts).where(eq(videoFeedPosts.id, id));
-    if (!post[0]) return undefined;
     const [updated] = await db.update(videoFeedPosts)
-      .set({ likes: (post[0].likes || 0) + 1 })
+      .set({ likes: sql`coalesce(${videoFeedPosts.likes}, 0) + 1` })
       .where(eq(videoFeedPosts.id, id))
       .returning();
     return updated;

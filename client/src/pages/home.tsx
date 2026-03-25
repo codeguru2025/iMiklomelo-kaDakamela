@@ -28,14 +28,17 @@ export default function Home() {
 
   const { data: announcements } = useQuery<Announcement[]>({
     queryKey: ["/api/announcements"],
+    staleTime: 5 * 60_000,
   });
 
   const { data: sponsors } = useQuery<Company[]>({
     queryKey: ["/api/sponsors"],
+    staleTime: 5 * 60_000,
   });
 
   const { data: pastEvents } = useQuery<PastEvent[]>({
     queryKey: ["/api/past-events"],
+    staleTime: 5 * 60_000,
   });
 
   const featuredSponsors = sponsors?.filter(s => s.applicationStatus === "approved").slice(0, 4) || [];

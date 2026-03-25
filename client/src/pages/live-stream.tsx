@@ -34,10 +34,13 @@ export default function LiveStream() {
 
   const { data: streamSettings, isLoading: settingsLoading } = useQuery<StreamSettings>({
     queryKey: ["/api/stream/settings"],
+    staleTime: 30_000,
+    refetchOnWindowFocus: true,
   });
 
   const { data: recordings } = useQuery<Recording[]>({
     queryKey: ["/api/recordings"],
+    staleTime: 5 * 60_000,
   });
 
   const accessForm = useForm<AccessCodeForm>({

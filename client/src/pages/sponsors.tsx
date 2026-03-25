@@ -28,10 +28,11 @@ const tierColors: Record<string, string> = {
 
 export default function Sponsors() {
   const { data: companies, isLoading } = useQuery<Company[]>({
-    queryKey: ["/api/companies"],
+    queryKey: ["/api/companies/approved"],
+    staleTime: 5 * 60_000,
   });
 
-  const approvedCompanies = companies?.filter(c => c.applicationStatus === "approved") || [];
+  const approvedCompanies = companies || [];
   const sponsors = approvedCompanies.filter(c => c.role === "sponsor" || c.role === "both");
   const exhibitors = approvedCompanies.filter(c => c.role === "exhibitor" || c.role === "both");
   

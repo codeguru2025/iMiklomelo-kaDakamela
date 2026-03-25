@@ -4,6 +4,7 @@ import connectPg from "connect-pg-simple";
 import passport from "passport";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import { authStorage } from "./storage";
+import { Pool } from "pg";
 
 const SUPERUSER_EMAIL = process.env.SUPERUSER_EMAIL || "";
 
@@ -11,27 +12,43 @@ export function getSession() {
   const sessionTtl = 7 * 24 * 60 * 60 * 1000; // 1 week
   const pgStore = connectPg(session);
   const isProduction = process.env.NODE_ENV === "production";
-  const databaseUrl = process.env.DATABASE_URL;
+  let databaseUrl = process.env.DATABASE_URL;
   
   console.log(`[Session Store] Environment: ${process.env.NODE_ENV}`);
-  console.log(`[Session Store] Using SSL: ${isProduction}`);
   console.log(`[Session Store] Database URL exists: ${!!databaseUrl}`);
+  console.log(`[Session Store] Database URL value: ${databaseUrl?.substring(0, 30)}...`);
   
   if (!databaseUrl) {
     throw new Error("DATABASE_URL environment variable is not set");
   }
   
+  // Apply same SSL fix as db.ts - replace sslmode=require with sslmode=no-verify
+  if (databaseUrl.includes('sslmode=require')) {
+    databaseUrl = databaseUrl.replace('sslmode=require', 'sslmode=no-verify');
+    console.log(`[Session Store] Modified SSL mode from 'require' to 'no-verify'`);
+  }
+  
+  // Create a Pool with SSL configuration for session store
+  const sessionPool = new Pool({
+    connectionString: databaseUrl,
+  });
+  
+  console.log(`[Session Store] Pool created successfully`);
+  
   const sessionStore = new pgStore({
-    conString: databaseUrl,
-    conObject: isProduction
-      ? { ssl: { rejectUnauthorized: false } }
-      : undefined,
+    pool: sessionPool,
     createTableIfMissing: true,
     ttl: sessionTtl,
     tableName: "sessions",
   });
   return session({
-    secret: process.env.SESSION_SECRET || "imiklomelo-session-secret-change-me",
+    secret: process.env.SESSION_SECRET || (() => {
+      if (process.env.NODE_ENV === "production") {
+        throw new Error("SESSION_SECRET environment variable is required in production");
+      }
+      console.warn("[Session] WARNING: Using default session secret. Set SESSION_SECRET in production!");
+      return "dev-only-session-secret-do-not-use-in-production";
+    })(),
     store: sessionStore,
     resave: false,
     saveUninitialized: false,
@@ -167,10 +184,9 @@ export function isAdmin(req: any): boolean {
     const role = req.user?.role;
     if (role === "admin" || role === "superuser") return true;
   }
-  // Fallback for dev / API key access
+  // Fallback: API key access (works in all environments)
   const adminKey = req.headers["x-admin-key"];
-  if (adminKey && adminKey === process.env.ADMIN_SECRET_KEY) return true;
-  if (process.env.NODE_ENV !== "production") return true;
+  if (adminKey && process.env.ADMIN_SECRET_KEY && adminKey === process.env.ADMIN_SECRET_KEY) return true;
   return false;
 }
 

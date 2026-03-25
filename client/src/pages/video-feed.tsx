@@ -21,10 +21,13 @@ export default function VideoFeed() {
 
   const { data: posts, isLoading } = useQuery<VideoFeedPost[]>({
     queryKey: ["/api/video-feed"],
+    staleTime: 60_000,
+    refetchOnWindowFocus: true,
   });
 
   const { data: streamSettings } = useQuery<StreamSettings>({
     queryKey: ["/api/stream/settings"],
+    staleTime: 30_000,
   });
 
   const likeMutation = useMutation({
@@ -69,7 +72,7 @@ export default function VideoFeed() {
     try {
       const urlResponse = await fetch("/api/uploads/request-url", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "X-Requested-With": "XMLHttpRequest" },
         body: JSON.stringify({
           name: videoFile.name,
           size: videoFile.size,

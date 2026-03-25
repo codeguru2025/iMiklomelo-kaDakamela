@@ -21,10 +21,12 @@ export default function Accommodation() {
 
   const { data: camps, isLoading: campsLoading } = useQuery<Camp[]>({
     queryKey: ["/api/camps"],
+    staleTime: 5 * 60_000,
   });
 
   const { data: services, isLoading: servicesLoading } = useQuery<CampService[]>({
     queryKey: ["/api/camp-services"],
+    staleTime: 5 * 60_000,
   });
 
   const toggleService = (serviceId: string) => {

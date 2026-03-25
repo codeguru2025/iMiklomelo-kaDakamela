@@ -206,7 +206,7 @@ export async function seedDatabase() {
     },
   ];
 
-  const insertedEvents = await db.insert(pastEvents).values(pastEventData).returning();
+  const insertedEvents = await db.insert(pastEvents).values(pastEventsData).returning();
   console.log("Past events seeded");
 
   const awardeeData = [

@@ -27,6 +27,26 @@ export async function registerRoutes(
   // Register file upload routes
   registerUploadRoutes(app);
 
+  const isAdminRequest = (req: any): boolean => isAdmin(req);
+
+  // CSRF protection: reject state-changing API requests without custom header
+  // Cross-origin form submissions and basic CSRF attacks cannot set custom headers
+  app.use("/api", (req, res, next) => {
+    const safeMethods = ["GET", "HEAD", "OPTIONS"];
+    if (safeMethods.includes(req.method)) return next();
+    // Allow Paynow callback (server-to-server, no browser headers)
+    if (req.path === "/payments/callback") return next();
+    // Allow OAuth callback (redirected by Google)
+    if (req.path.startsWith("/auth/google")) return next();
+    if (req.path === "/login" || req.path === "/logout") return next();
+    // Require custom header from SPA fetch calls
+    if (!req.headers["x-requested-with"]) {
+      res.status(403).json({ error: "Forbidden: missing required header" });
+      return;
+    }
+    next();
+  });
+
   // Public asset proxy - redirects to CDN for better performance
   app.get("/api/assets/:file", async (req, res) => {
     try {
@@ -69,8 +89,12 @@ export async function registerRoutes(
     }
   });
   
-  // Attendees
+  // Attendees (admin only - returns all PII)
   app.get("/api/attendees", async (req, res) => {
+    if (!isAdminRequest(req)) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
     try {
       const attendees = await storage.getAttendees();
       res.json(attendees);
@@ -156,8 +180,12 @@ export async function registerRoutes(
     }
   });
 
-  // Reservations
+  // Reservations (admin only)
   app.get("/api/reservations", async (req, res) => {
+    if (!isAdminRequest(req)) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
     try {
       const reservations = await storage.getReservations();
       res.json(reservations);
@@ -198,9 +226,21 @@ export async function registerRoutes(
   });
 
   app.patch("/api/reservations/:id", async (req, res) => {
+    if (!isAdminRequest(req)) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
     try {
       const { id } = req.params;
-      const reservation = await storage.updateReservation(id, req.body);
+      const allowedFields = z.object({
+        depositStatus: z.enum(["pending", "paid", "expired", "refunded"]).optional(),
+      }).strict();
+      const parsed = allowedFields.safeParse(req.body);
+      if (!parsed.success) {
+        res.status(400).json({ error: "Invalid data", details: parsed.error.errors });
+        return;
+      }
+      const reservation = await storage.updateReservation(id, parsed.data);
       if (!reservation) {
         res.status(404).json({ error: "Reservation not found" });
         return;
@@ -211,11 +251,26 @@ export async function registerRoutes(
     }
   });
 
-  // Companies (sponsors & exhibitors)
+  // Companies - all (admin only)
   app.get("/api/companies", async (req, res) => {
+    if (!isAdminRequest(req)) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
     try {
       const companies = await storage.getCompanies();
       res.json(companies);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch companies" });
+    }
+  });
+
+  // Companies - approved only (public)
+  app.get("/api/companies/approved", async (req, res) => {
+    try {
+      const companies = await storage.getCompanies();
+      const approved = companies.filter(c => c.applicationStatus === "approved");
+      res.json(approved);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch companies" });
     }
@@ -255,9 +310,23 @@ export async function registerRoutes(
   });
 
   app.patch("/api/companies/:id", async (req, res) => {
+    if (!isAdminRequest(req)) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
     try {
       const { id } = req.params;
-      const company = await storage.updateCompany(id, req.body);
+      const allowedFields = z.object({
+        applicationStatus: z.enum(["pending", "approved", "rejected"]).optional(),
+        sponsorshipTier: z.string().optional(),
+        isPrimarySponsor: z.boolean().optional(),
+      }).strict();
+      const parsed = allowedFields.safeParse(req.body);
+      if (!parsed.success) {
+        res.status(400).json({ error: "Invalid data", details: parsed.error.errors });
+        return;
+      }
+      const company = await storage.updateCompany(id, parsed.data);
       if (!company) {
         res.status(404).json({ error: "Company not found" });
         return;
@@ -271,14 +340,21 @@ export async function registerRoutes(
   // Past Events
   app.get("/api/past-events", async (req, res) => {
     try {
-      const events = await storage.getPastEvents();
-      // Fetch awardees for each event
-      const eventsWithAwardees = await Promise.all(
-        events.map(async (event) => {
-          const awardees = await storage.getAwardeesByEvent(event.id);
-          return { ...event, awardees };
-        })
-      );
+      const [events, allAwardees] = await Promise.all([
+        storage.getPastEvents(),
+        storage.getAwardees(),
+      ]);
+      // Group awardees by event ID in a single pass (avoids N+1 queries)
+      const awardeesByEvent = new Map<string, typeof allAwardees>();
+      for (const awardee of allAwardees) {
+        const list = awardeesByEvent.get(awardee.pastEventId) || [];
+        list.push(awardee);
+        awardeesByEvent.set(awardee.pastEventId, list);
+      }
+      const eventsWithAwardees = events.map(event => ({
+        ...event,
+        awardees: awardeesByEvent.get(event.id) || [],
+      }));
       res.json(eventsWithAwardees);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch past events" });
@@ -355,6 +431,10 @@ export async function registerRoutes(
   });
 
   app.post("/api/announcements", async (req, res) => {
+    if (!isAdminRequest(req)) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
     try {
       const data = insertAnnouncementSchema.parse(req.body);
       const announcement = await storage.createAnnouncement({
@@ -514,8 +594,6 @@ export async function registerRoutes(
     }
   });
 
-  const isAdminRequest = (req: any): boolean => isAdmin(req);
-
   // Analytics (Admin)
   app.get("/api/admin/analytics", async (req, res) => {
     if (!isAdminRequest(req)) {
@@ -584,20 +662,29 @@ export async function registerRoutes(
         "Marketing Consent", "Created At"
       ].join(",");
       
+      // Sanitize CSV values to prevent formula injection (=, +, -, @, \t, \r)
+      const csvSafe = (val: string): string => {
+        const escaped = val.replace(/"/g, '""');
+        if (/^[=+\-@\t\r]/.test(escaped)) {
+          return `"'${escaped}"`;
+        }
+        return `"${escaped}"`;
+      };
+
       const csvRows = attendees.map(a => [
-        `"${a.fullName}"`,
-        `"${a.email}"`,
-        `"${a.phone || ""}"`,
-        `"${a.gender || ""}"`,
-        `"${a.ageRange || ""}"`,
-        `"${a.profession || ""}"`,
-        `"${a.attendanceType}"`,
-        `"${a.country}"`,
-        `"${a.city}"`,
+        csvSafe(a.fullName),
+        csvSafe(a.email),
+        csvSafe(a.phone || ""),
+        csvSafe(a.gender || ""),
+        csvSafe(a.ageRange || ""),
+        csvSafe(a.profession || ""),
+        csvSafe(a.attendanceType),
+        csvSafe(a.country),
+        csvSafe(a.city),
         a.isFirstTime ? "Yes" : "No",
         a.needsAccommodation ? "Yes" : "No",
         a.marketingConsent ? "Yes" : "No",
-        `"${a.createdAt.toISOString()}"`,
+        csvSafe(a.createdAt.toISOString()),
       ].join(","));
       
       const csv = [csvHeaders, ...csvRows].join("\n");
@@ -610,8 +697,12 @@ export async function registerRoutes(
     }
   });
 
-  // Tickets - Generate ticket for attendee
+  // Tickets - Generate ticket for attendee (admin only)
   app.post("/api/tickets", async (req, res) => {
+    if (!isAdminRequest(req)) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
     try {
       const { attendeeId, reservationId } = req.body;
       
@@ -788,8 +879,14 @@ export async function registerRoutes(
     }
     try {
       const tickets = await storage.getRecentScannedTickets(10);
-      const results = await Promise.all(tickets.map(async (ticket) => {
-        const attendee = await storage.getAttendee(ticket.attendeeId);
+      // Batch-fetch all attendees in one query instead of N individual lookups
+      const attendeeIds = Array.from(new Set(tickets.map(t => t.attendeeId)));
+      const attendeesList = attendeeIds.length > 0
+        ? await storage.getAttendeesByIds(attendeeIds)
+        : [];
+      const attendeeMap = new Map(attendeesList.map(a => [a.id, a]));
+      const results = tickets.map(ticket => {
+        const attendee = attendeeMap.get(ticket.attendeeId);
         return {
           ticket: {
             id: ticket.id,
@@ -803,7 +900,7 @@ export async function registerRoutes(
             email: attendee.email,
           } : null,
         };
-      }));
+      });
       res.json(results);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch recent scans" });
@@ -953,20 +1050,6 @@ export async function registerRoutes(
     }
   });
 
-  // Update stream settings (admin only)
-  app.put("/api/stream/settings", async (req, res) => {
-    if (!isAdminRequest(req)) {
-      res.status(401).json({ error: "Unauthorized" });
-      return;
-    }
-    try {
-      const settings = await storage.upsertStreamSettings(req.body);
-      res.json(settings);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to update stream settings" });
-    }
-  });
-
   // Verify stream access code
   app.post("/api/stream/verify-access", async (req, res) => {
     try {
@@ -1056,32 +1139,6 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/recordings", async (req, res) => {
-    if (!isAdminRequest(req)) {
-      res.status(401).json({ error: "Unauthorized" });
-      return;
-    }
-    try {
-      const recording = await storage.createRecording(req.body);
-      res.json(recording);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to create recording" });
-    }
-  });
-
-  app.delete("/api/recordings/:id", async (req, res) => {
-    if (!isAdminRequest(req)) {
-      res.status(401).json({ error: "Unauthorized" });
-      return;
-    }
-    try {
-      await storage.deleteRecording(req.params.id);
-      res.json({ success: true });
-    } catch (error) {
-      res.status(500).json({ error: "Failed to delete recording" });
-    }
-  });
-
   // ========== VIDEO FEED ROUTES ==========
 
   // Get approved video posts (public)
@@ -1094,20 +1151,6 @@ export async function registerRoutes(
     }
   });
 
-  // Get all video posts (admin)
-  app.get("/api/video-feed/all", async (req, res) => {
-    if (!isAdminRequest(req)) {
-      res.status(401).json({ error: "Unauthorized" });
-      return;
-    }
-    try {
-      const posts = await storage.getAllVideoPosts();
-      res.json(posts);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to fetch video posts" });
-    }
-  });
-
   // Submit a video post
   app.post("/api/video-feed", async (req, res) => {
     try {
@@ -1117,25 +1160,15 @@ export async function registerRoutes(
         return;
       }
       
-      const post = await storage.createVideoPost(req.body);
+      const parsed = insertVideoFeedPostSchema.safeParse(req.body);
+      if (!parsed.success) {
+        res.status(400).json({ error: "Invalid video post data", details: parsed.error.errors });
+        return;
+      }
+      const post = await storage.createVideoPost(parsed.data);
       res.json(post);
     } catch (error) {
       res.status(500).json({ error: "Failed to submit video" });
-    }
-  });
-
-  // Approve/reject video post (admin)
-  app.put("/api/video-feed/:id/status", async (req, res) => {
-    if (!isAdminRequest(req)) {
-      res.status(401).json({ error: "Unauthorized" });
-      return;
-    }
-    try {
-      const { status } = req.body;
-      const updated = await storage.updateVideoPostStatus(req.params.id, status);
-      res.json(updated);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to update video status" });
     }
   });
 

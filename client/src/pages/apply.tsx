@@ -62,7 +62,7 @@ export default function Apply() {
     try {
       const response = await fetch("/api/uploads/request-url", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "X-Requested-With": "XMLHttpRequest" },
         body: JSON.stringify({
           name: file.name,
           size: file.size,

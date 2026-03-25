@@ -92,7 +92,7 @@ function ImageUpdateDialog({ event, onUpdate, isPending }: {
     try {
       const response = await fetch("/api/uploads/request-url", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "X-Requested-With": "XMLHttpRequest" },
         body: JSON.stringify({
           name: file.name,
           size: file.size,
@@ -215,18 +215,26 @@ function StreamingManagement() {
 
   const { data: settings, isLoading: settingsLoading } = useQuery<StreamSettings>({
     queryKey: ["/api/admin/stream-settings"],
+    staleTime: 30_000,
+    refetchOnWindowFocus: true,
   });
 
   const { data: videoPosts, isLoading: postsLoading } = useQuery<VideoFeedPost[]>({
     queryKey: ["/api/admin/video-posts"],
+    staleTime: 30_000,
+    refetchOnWindowFocus: true,
   });
 
   const { data: recordings, isLoading: recordingsLoading } = useQuery<Recording[]>({
     queryKey: ["/api/recordings"],
+    staleTime: 30_000,
+    refetchOnWindowFocus: true,
   });
 
   const { data: streamStats } = useQuery<{ totalSubscribers: number; totalRevenue: number }>({
     queryKey: ["/api/admin/stream-stats"],
+    staleTime: 30_000,
+    refetchOnWindowFocus: true,
   });
 
   const updateSettingsMutation = useMutation({
@@ -636,33 +644,44 @@ function AdminDashboard({ isSuperuser, currentUser }: { isSuperuser: boolean; cu
     year: new Date().getFullYear(), 
     title: "", 
     summary: "", 
-    description: "",
     edition: "",
     imageUrl: "" 
   });
 
   const { data: attendees, isLoading: attendeesLoading } = useQuery<Attendee[]>({
     queryKey: ["/api/attendees"],
+    staleTime: 30_000,
+    refetchOnWindowFocus: true,
   });
 
   const { data: reservations, isLoading: reservationsLoading } = useQuery<Reservation[]>({
     queryKey: ["/api/reservations"],
+    staleTime: 30_000,
+    refetchOnWindowFocus: true,
   });
 
   const { data: companies, isLoading: companiesLoading } = useQuery<Company[]>({
     queryKey: ["/api/companies"],
+    staleTime: 30_000,
+    refetchOnWindowFocus: true,
   });
 
   const { data: announcements, isLoading: announcementsLoading } = useQuery<Announcement[]>({
     queryKey: ["/api/announcements"],
+    staleTime: 30_000,
+    refetchOnWindowFocus: true,
   });
 
   const { data: analytics, isLoading: analyticsLoading } = useQuery<Analytics>({
     queryKey: ["/api/admin/analytics"],
+    staleTime: 30_000,
+    refetchOnWindowFocus: true,
   });
 
   const { data: pastEvents, isLoading: pastEventsLoading } = useQuery<PastEvent[]>({
     queryKey: ["/api/past-events"],
+    staleTime: 30_000,
+    refetchOnWindowFocus: true,
   });
 
   const updateCompanyStatus = useMutation({
@@ -712,7 +731,7 @@ function AdminDashboard({ isSuperuser, currentUser }: { isSuperuser: boolean; cu
     onSuccess: () => {
       toast({ title: "Past event created" });
       queryClient.invalidateQueries({ queryKey: ["/api/past-events"] });
-      setNewPastEvent({ year: new Date().getFullYear(), title: "", summary: "", description: "", edition: "", imageUrl: "" });
+      setNewPastEvent({ year: new Date().getFullYear(), title: "", summary: "", edition: "", imageUrl: "" });
     },
     onError: (error: Error) => {
       toast({ title: "Failed to create past event", description: error.message, variant: "destructive" });
@@ -1307,15 +1326,6 @@ function AdminDashboard({ isSuperuser, currentUser }: { isSuperuser: boolean; cu
                         />
                       </div>
                       <div>
-                        <Label>Description</Label>
-                        <Textarea 
-                          value={newPastEvent.description}
-                          onChange={(e) => setNewPastEvent(prev => ({ ...prev, description: e.target.value }))}
-                          placeholder="Full description"
-                          data-testid="input-event-description"
-                        />
-                      </div>
-                      <div>
                         <Label className="flex items-center gap-2">
                           <ImageIcon className="w-4 h-4" />
                           Image URL
@@ -1533,6 +1543,8 @@ function UserManagement() {
   const { toast } = useToast();
   const { data: users, isLoading } = useQuery<User[]>({
     queryKey: ["/api/admin/users"],
+    staleTime: 30_000,
+    refetchOnWindowFocus: true,
   });
 
   const updateRoleMutation = useMutation({

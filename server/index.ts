@@ -19,7 +19,21 @@ declare module "http" {
 
 // Security headers
 app.use(helmet({
-  contentSecurityPolicy: false, // CSP handled by meta tags / inline scripts
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com"],
+      imgSrc: ["'self'", "data:", "blob:", "https://*.digitaloceanspaces.com", "https://lh3.googleusercontent.com"],
+      connectSrc: ["'self'", "https://*.digitaloceanspaces.com"],
+      frameSrc: ["'self'", "https://www.youtube.com", "https://www.youtube-nocookie.com", "https://player.vimeo.com", "https://*.paynow.co.zw"],
+      objectSrc: ["'none'"],
+      baseUri: ["'self'"],
+      formAction: ["'self'", "https://www.paynow.co.zw"],
+      frameAncestors: ["'none'"],
+    },
+  },
   crossOriginEmbedderPolicy: false, // allow embedding streams
 }));
 
@@ -41,6 +55,24 @@ app.use("/api/login", rateLimit({
   max: 10,
   standardHeaders: true,
   legacyHeaders: false,
+}));
+
+// Rate limit payment initiation (5 req/min per IP) to prevent abuse
+app.use("/api/payments/initiate", rateLimit({
+  windowMs: 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many payment attempts, please try again later" },
+}));
+
+// Rate limit stream purchases (5 req/min per IP)
+app.use("/api/stream/purchase", rateLimit({
+  windowMs: 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many purchase attempts, please try again later" },
 }));
 
 app.use(
@@ -81,7 +113,8 @@ app.use((req, res, next) => {
     if (path.startsWith("/api")) {
       let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
       if (capturedJsonResponse) {
-        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
+        const body = JSON.stringify(capturedJsonResponse);
+        logLine += ` :: ${body.length > 200 ? body.slice(0, 200) + "…" : body}`;
       }
 
       log(logLine);
@@ -141,4 +174,21 @@ app.use((req, res, next) => {
       log(`serving on port ${port}`);
     },
   );
+
+  // Graceful shutdown: finish in-flight requests before exiting
+  const shutdown = (signal: string) => {
+    log(`${signal} received — shutting down gracefully`);
+    httpServer.close(() => {
+      log("HTTP server closed");
+      process.exit(0);
+    });
+    // Force exit after 10s if connections linger
+    setTimeout(() => {
+      console.error("Forced shutdown after timeout");
+      process.exit(1);
+    }, 10_000).unref();
+  };
+
+  process.on("SIGTERM", () => shutdown("SIGTERM"));
+  process.on("SIGINT", () => shutdown("SIGINT"));
 })();

@@ -21,6 +21,13 @@ console.log(`[Database] Connection string contains sslmode:`, databaseUrl.includ
 
 const pool = new Pool({
   connectionString: databaseUrl,
+  max: 20,
+  idleTimeoutMillis: 30_000,
+  connectionTimeoutMillis: 5_000,
+});
+
+pool.on("error", (err) => {
+  console.error("[Database] Unexpected pool error:", err.message);
 });
 
 export const db = drizzle(pool, { schema });

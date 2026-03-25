@@ -244,7 +244,6 @@ export const updatePastEventSchema = z.object({
   edition: z.string().optional(),
   title: z.string().optional(),
   summary: z.string().optional(),
-  description: z.string().optional(),
   imageUrl: z.string().nullable().optional(),
 }).strict();
 export const insertAwardeeSchema = createInsertSchema(awardees).omit({ id: true, createdAt: true });

@@ -1,5 +1,6 @@
 import type { Express } from "express";
 import { getPresignedUploadUrl, isSpacesConfigured, getPublicUrl } from "../spaces";
+import { isAdmin } from "../auth";
 
 /**
  * Register upload routes for file uploads via DigitalOcean Spaces.
@@ -11,6 +12,9 @@ import { getPresignedUploadUrl, isSpacesConfigured, getPublicUrl } from "../spac
  */
 export function registerUploadRoutes(app: Express): void {
   app.post("/api/uploads/request-url", async (req, res) => {
+    if (!isAdmin(req)) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
     try {
       if (!isSpacesConfigured()) {
         console.error("[Upload] Spaces not configured - upload request rejected");
