@@ -28,10 +28,11 @@ const tierColors: Record<string, string> = {
 
 export default function Sponsors() {
   const { data: companies, isLoading } = useQuery<Company[]>({
-    queryKey: ["/api/companies"],
+    queryKey: ["/api/companies/approved"],
+    staleTime: 5 * 60_000,
   });
 
-  const approvedCompanies = companies?.filter(c => c.applicationStatus === "approved") || [];
+  const approvedCompanies = companies || [];
   const sponsors = approvedCompanies.filter(c => c.role === "sponsor" || c.role === "both");
   const exhibitors = approvedCompanies.filter(c => c.role === "exhibitor" || c.role === "both");
   
@@ -89,17 +90,21 @@ export default function Sponsors() {
                         <Crown className="w-3 h-3 mr-1" />
                         Main Sponsor
                       </Badge>
-                      <Card className="max-w-xl mx-auto border-primary border-2" data-testid={`card-sponsor-${primarySponsor.id}`}>
+                      <Card className="max-w-xl mx-auto border-primary border-2 overflow-hidden" data-testid={`card-sponsor-${primarySponsor.id}`}>
                         <CardHeader className="text-center pb-2">
-                          <div className="w-24 h-24 mx-auto rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center mb-4">
+                          <div className="mx-auto mb-4">
                             {primarySponsor.logoUrl ? (
-                              <img 
-                                src={primarySponsor.logoUrl} 
-                                alt={primarySponsor.name}
-                                className="w-full h-full rounded-full object-cover"
-                              />
+                              <a href={primarySponsor.website || "#"} target="_blank" rel="noopener noreferrer" className="block">
+                                <img 
+                                  src={primarySponsor.logoUrl} 
+                                  alt={primarySponsor.name}
+                                  className="h-28 md:h-36 w-auto max-w-[280px] mx-auto object-contain hover:opacity-80 transition-opacity cursor-pointer"
+                                />
+                              </a>
                             ) : (
-                              <Building2 className="w-12 h-12 text-white" />
+                              <div className="w-24 h-24 mx-auto rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center">
+                                <Building2 className="w-12 h-12 text-white" />
+                              </div>
                             )}
                           </div>
                           <CardTitle className="font-serif text-2xl">{primarySponsor.name}</CardTitle>
@@ -141,17 +146,19 @@ export default function Sponsors() {
                         {otherSponsors.map((sponsor) => (
                           <Card key={sponsor.id} className="hover-elevate" data-testid={`card-sponsor-${sponsor.id}`}>
                             <CardHeader className="text-center">
-                              <div className={`w-16 h-16 mx-auto rounded-full ${tierColors[sponsor.sponsorshipTier?.toLowerCase() || 'bronze'] || 'bg-muted'} flex items-center justify-center mb-3`}>
-                                {sponsor.logoUrl ? (
-                                  <img 
-                                    src={sponsor.logoUrl} 
-                                    alt={sponsor.name}
-                                    className="w-full h-full rounded-full object-cover"
-                                  />
-                                ) : (
-                                  <Building2 className="w-8 h-8 text-white" />
-                                )}
-                              </div>
+                              <a href={sponsor.website || "#"} target="_blank" rel="noopener noreferrer" className="block">
+                                <div className={`w-16 h-16 mx-auto rounded-full ${tierColors[sponsor.sponsorshipTier?.toLowerCase() || 'bronze'] || 'bg-muted'} flex items-center justify-center mb-3 hover:opacity-80 transition-opacity`}>
+                                  {sponsor.logoUrl ? (
+                                    <img 
+                                      src={sponsor.logoUrl} 
+                                      alt={sponsor.name}
+                                      className="w-full h-full rounded-full object-cover"
+                                    />
+                                  ) : (
+                                    <Building2 className="w-8 h-8 text-white" />
+                                  )}
+                                </div>
+                              </a>
                               <CardTitle className="text-lg">{sponsor.name}</CardTitle>
                               {sponsor.sponsorshipTier && (
                                 <Badge variant="outline" className="mt-1">{sponsor.sponsorshipTier}</Badge>
