@@ -160,7 +160,7 @@ export default function Register() {
 
   const nextStep = async () => {
     let fieldsToValidate: (keyof RegistrationForm)[] = [];
-    
+
     if (step === 1) {
       fieldsToValidate = ["fullName", "email", "phone", "gender", "ageRange"];
     } else if (step === 2) {
@@ -172,9 +172,22 @@ export default function Register() {
     }
 
     const isValid = await form.trigger(fieldsToValidate);
-    if (isValid) {
-      setStep(step + 1);
+    if (!isValid) return;
+
+    // Cross-field date validation: departure must be strictly after arrival
+    if (step === 3 && needsAccommodation) {
+      const arrivalDate = form.getValues("arrivalDate");
+      const departureDate = form.getValues("departureDate");
+      if (arrivalDate && departureDate && departureDate <= arrivalDate) {
+        form.setError("departureDate", {
+          type: "manual",
+          message: "Departure date must be after arrival date",
+        });
+        return;
+      }
     }
+
+    setStep(step + 1);
   };
 
   const prevStep = () => {

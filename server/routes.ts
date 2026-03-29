@@ -8,46 +8,26 @@ import {
   type Payment
 } from "@shared/schema";
 import { z } from "zod";
-import { initializePayment, checkPaymentStatus, isPaymentComplete, verifyPaynowHash } from "./paynow";
+import { initializePayment, checkPaymentStatus, isPaymentComplete, isPaymentFailed, verifyPaynowHash } from "./paynow";
 import { randomUUID } from "crypto";
-import { setupAuth, registerAuthRoutes, isAdmin } from "./auth";
-import { registerUploadRoutes } from "./uploads/routes";
+import { setupAuth, registerAuthRoutes, isAdmin } from "./replit_integrations/auth";
+import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
 import { sendRegistrationEmail, sendBookingConfirmationEmail, sendPaymentConfirmationEmail } from "./email";
-import { isSpacesConfigured, streamObject, getPublicUrl } from "./spaces";
+import { getPresignedReadUrl, isSpacesConfigured, objectExists } from "./spaces";
 
 export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
   
-  // Setup authentication (MUST be before other routes)
+  // Setup Replit Auth (MUST be before other routes)
   await setupAuth(app);
   registerAuthRoutes(app);
   
-  // Register file upload routes
-  registerUploadRoutes(app);
+  // Register object storage routes for file uploads
+  registerObjectStorageRoutes(app);
 
-  const isAdminRequest = (req: any): boolean => isAdmin(req);
-
-  // CSRF protection: reject state-changing API requests without custom header
-  // Cross-origin form submissions and basic CSRF attacks cannot set custom headers
-  app.use("/api", (req, res, next) => {
-    const safeMethods = ["GET", "HEAD", "OPTIONS"];
-    if (safeMethods.includes(req.method)) return next();
-    // Allow Paynow callback (server-to-server, no browser headers)
-    if (req.path === "/payments/callback") return next();
-    // Allow OAuth callback (redirected by Google)
-    if (req.path.startsWith("/auth/google")) return next();
-    if (req.path === "/login" || req.path === "/logout") return next();
-    // Require custom header from SPA fetch calls
-    if (!req.headers["x-requested-with"]) {
-      res.status(403).json({ error: "Forbidden: missing required header" });
-      return;
-    }
-    next();
-  });
-
-  // Public asset proxy - redirects to CDN for better performance
+  // Public asset proxy (handles private Spaces/CDN)
   app.get("/api/assets/:file", async (req, res) => {
     try {
       const file = req.params.file;
@@ -64,37 +44,30 @@ export async function registerRoutes(
         return;
       }
 
-      // Files are stored under "attached assets/" in the Spaces bucket
-      const objectKey = `attached assets/${file}`;
-      
-      // Redirect to CDN URL for better performance (no server proxy overhead)
-      const cdnUrl = getPublicUrl(objectKey);
-      res.redirect(302, cdnUrl);
-    } catch (error: any) {
-      const errorMsg = error?.message || error;
-      console.error(`Asset proxy error for "${req.params.file}":`, errorMsg);
-      
-      if (error?.name === "NoSuchBucket") {
-        console.error(`  Bucket not found. Check DO_SPACES_BUCKET env var and verify bucket exists in DO Spaces.`);
-        res.status(500).json({ error: "Storage bucket not configured" });
-      } else if (error?.$metadata?.httpStatusCode === 404 || error?.name === "NoSuchKey") {
-        res.status(404).json({ error: "Not found" });
-      } else if (error?.name === "CredentialsProviderError" || error?.message?.includes("credentials")) {
-        console.error(`  Invalid credentials. Check DO_SPACES_KEY and DO_SPACES_SECRET.`);
-        res.status(500).json({ error: "Storage credentials invalid" });
-      } else {
-        console.error(`  Error details:`, error);
-        res.status(500).json({ error: "Failed to load asset" });
+      const candidates = [`attached assets/${file}`, `attached_assets/${file}`];
+      let foundKey: string | undefined;
+
+      for (const key of candidates) {
+        if (await objectExists(key)) {
+          foundKey = key;
+          break;
+        }
       }
+
+      if (!foundKey) {
+        res.status(404).json({ error: "Not found", attempted: candidates });
+        return;
+      }
+
+      const url = await getPresignedReadUrl(foundKey, 60 * 10);
+      res.redirect(url);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to load asset" });
     }
   });
   
-  // Attendees (admin only - returns all PII)
+  // Attendees
   app.get("/api/attendees", async (req, res) => {
-    if (!isAdminRequest(req)) {
-      res.status(401).json({ error: "Unauthorized" });
-      return;
-    }
     try {
       const attendees = await storage.getAttendees();
       res.json(attendees);
@@ -180,12 +153,8 @@ export async function registerRoutes(
     }
   });
 
-  // Reservations (admin only)
+  // Reservations
   app.get("/api/reservations", async (req, res) => {
-    if (!isAdminRequest(req)) {
-      res.status(401).json({ error: "Unauthorized" });
-      return;
-    }
     try {
       const reservations = await storage.getReservations();
       res.json(reservations);
@@ -226,21 +195,9 @@ export async function registerRoutes(
   });
 
   app.patch("/api/reservations/:id", async (req, res) => {
-    if (!isAdminRequest(req)) {
-      res.status(401).json({ error: "Unauthorized" });
-      return;
-    }
     try {
       const { id } = req.params;
-      const allowedFields = z.object({
-        depositStatus: z.enum(["pending", "paid", "expired", "refunded"]).optional(),
-      }).strict();
-      const parsed = allowedFields.safeParse(req.body);
-      if (!parsed.success) {
-        res.status(400).json({ error: "Invalid data", details: parsed.error.errors });
-        return;
-      }
-      const reservation = await storage.updateReservation(id, parsed.data);
+      const reservation = await storage.updateReservation(id, req.body);
       if (!reservation) {
         res.status(404).json({ error: "Reservation not found" });
         return;
@@ -251,26 +208,11 @@ export async function registerRoutes(
     }
   });
 
-  // Companies - all (admin only)
+  // Companies (sponsors & exhibitors)
   app.get("/api/companies", async (req, res) => {
-    if (!isAdminRequest(req)) {
-      res.status(401).json({ error: "Unauthorized" });
-      return;
-    }
     try {
       const companies = await storage.getCompanies();
       res.json(companies);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to fetch companies" });
-    }
-  });
-
-  // Companies - approved only (public)
-  app.get("/api/companies/approved", async (req, res) => {
-    try {
-      const companies = await storage.getCompanies();
-      const approved = companies.filter(c => c.applicationStatus === "approved");
-      res.json(approved);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch companies" });
     }
@@ -285,8 +227,8 @@ export async function registerRoutes(
       );
       // Ensure primary sponsor is first
       sponsors.sort((a, b) => {
-        if (a.isPrimarySponsor) return -1;
-        if (b.isPrimarySponsor) return 1;
+        if (a.isPrimarySponsor === true) return -1;
+        if (b.isPrimarySponsor === true) return 1;
         return 0;
       });
       res.json(sponsors);
@@ -310,23 +252,9 @@ export async function registerRoutes(
   });
 
   app.patch("/api/companies/:id", async (req, res) => {
-    if (!isAdminRequest(req)) {
-      res.status(401).json({ error: "Unauthorized" });
-      return;
-    }
     try {
       const { id } = req.params;
-      const allowedFields = z.object({
-        applicationStatus: z.enum(["pending", "approved", "rejected"]).optional(),
-        sponsorshipTier: z.string().optional(),
-        isPrimarySponsor: z.boolean().optional(),
-      }).strict();
-      const parsed = allowedFields.safeParse(req.body);
-      if (!parsed.success) {
-        res.status(400).json({ error: "Invalid data", details: parsed.error.errors });
-        return;
-      }
-      const company = await storage.updateCompany(id, parsed.data);
+      const company = await storage.updateCompany(id, req.body);
       if (!company) {
         res.status(404).json({ error: "Company not found" });
         return;
@@ -340,21 +268,14 @@ export async function registerRoutes(
   // Past Events
   app.get("/api/past-events", async (req, res) => {
     try {
-      const [events, allAwardees] = await Promise.all([
-        storage.getPastEvents(),
-        storage.getAwardees(),
-      ]);
-      // Group awardees by event ID in a single pass (avoids N+1 queries)
-      const awardeesByEvent = new Map<string, typeof allAwardees>();
-      for (const awardee of allAwardees) {
-        const list = awardeesByEvent.get(awardee.pastEventId) || [];
-        list.push(awardee);
-        awardeesByEvent.set(awardee.pastEventId, list);
-      }
-      const eventsWithAwardees = events.map(event => ({
-        ...event,
-        awardees: awardeesByEvent.get(event.id) || [],
-      }));
+      const events = await storage.getPastEvents();
+      // Fetch awardees for each event
+      const eventsWithAwardees = await Promise.all(
+        events.map(async (event) => {
+          const awardees = await storage.getAwardeesByEvent(event.id);
+          return { ...event, awardees };
+        })
+      );
       res.json(eventsWithAwardees);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch past events" });
@@ -431,10 +352,6 @@ export async function registerRoutes(
   });
 
   app.post("/api/announcements", async (req, res) => {
-    if (!isAdminRequest(req)) {
-      res.status(401).json({ error: "Unauthorized" });
-      return;
-    }
     try {
       const data = insertAnnouncementSchema.parse(req.body);
       const announcement = await storage.createAnnouncement({
@@ -461,12 +378,18 @@ export async function registerRoutes(
         return;
       }
 
+      const parsedAmount = parseFloat(amount);
+      if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
+        res.status(400).json({ error: "Invalid amount" });
+        return;
+      }
+
       const reference = `DK-${Date.now()}-${randomUUID().slice(0, 8)}`;
-      
+
       const paynowResponse = await initializePayment({
         reference,
         email,
-        amount: parseFloat(amount),
+        amount: parsedAmount,
         additionalInfo: `iMiklomelo kaDakamela Cultural Festival - ${paymentType || "deposit"}`,
       });
 
@@ -474,7 +397,7 @@ export async function registerRoutes(
         const payment = await storage.createPayment({
           reservationId: reservationId || null,
           attendeeId: attendeeId || null,
-          amount: amount.toString(),
+          amount: parsedAmount.toFixed(2),
           currency: "USD",
           paynowReference: reference,
           pollUrl: paynowResponse.pollUrl || null,
@@ -512,20 +435,22 @@ export async function registerRoutes(
 
       if (payment.pollUrl && payment.status === "pending") {
         const status = await checkPaymentStatus(payment.pollUrl);
-        
+
         if (isPaymentComplete(status.status)) {
-          await storage.updatePayment(id, { 
+          await storage.updatePayment(id, {
             status: "paid",
             paidAt: new Date(),
           });
-          
+
           if (payment.reservationId) {
             await storage.updateReservation(payment.reservationId, {
               depositStatus: "paid",
             });
           }
+        } else if (isPaymentFailed(status.status) || status.status === "Error") {
+          await storage.updatePayment(id, { status: "failed" });
         }
-        
+
         res.json({ ...payment, paynowStatus: status.status });
       } else {
         res.json(payment);
@@ -593,6 +518,8 @@ export async function registerRoutes(
       res.status(200).send("OK");
     }
   });
+
+  const isAdminRequest = (req: any): boolean => isAdmin(req);
 
   // Analytics (Admin)
   app.get("/api/admin/analytics", async (req, res) => {
@@ -662,29 +589,20 @@ export async function registerRoutes(
         "Marketing Consent", "Created At"
       ].join(",");
       
-      // Sanitize CSV values to prevent formula injection (=, +, -, @, \t, \r)
-      const csvSafe = (val: string): string => {
-        const escaped = val.replace(/"/g, '""');
-        if (/^[=+\-@\t\r]/.test(escaped)) {
-          return `"'${escaped}"`;
-        }
-        return `"${escaped}"`;
-      };
-
       const csvRows = attendees.map(a => [
-        csvSafe(a.fullName),
-        csvSafe(a.email),
-        csvSafe(a.phone || ""),
-        csvSafe(a.gender || ""),
-        csvSafe(a.ageRange || ""),
-        csvSafe(a.profession || ""),
-        csvSafe(a.attendanceType),
-        csvSafe(a.country),
-        csvSafe(a.city),
+        `"${a.fullName}"`,
+        `"${a.email}"`,
+        `"${a.phone || ""}"`,
+        `"${a.gender || ""}"`,
+        `"${a.ageRange || ""}"`,
+        `"${a.profession || ""}"`,
+        `"${a.attendanceType}"`,
+        `"${a.country}"`,
+        `"${a.city}"`,
         a.isFirstTime ? "Yes" : "No",
         a.needsAccommodation ? "Yes" : "No",
         a.marketingConsent ? "Yes" : "No",
-        csvSafe(a.createdAt.toISOString()),
+        `"${a.createdAt.toISOString()}"`,
       ].join(","));
       
       const csv = [csvHeaders, ...csvRows].join("\n");
@@ -697,12 +615,8 @@ export async function registerRoutes(
     }
   });
 
-  // Tickets - Generate ticket for attendee (admin only)
+  // Tickets - Generate ticket for attendee
   app.post("/api/tickets", async (req, res) => {
-    if (!isAdminRequest(req)) {
-      res.status(401).json({ error: "Unauthorized" });
-      return;
-    }
     try {
       const { attendeeId, reservationId } = req.body;
       
@@ -879,14 +793,8 @@ export async function registerRoutes(
     }
     try {
       const tickets = await storage.getRecentScannedTickets(10);
-      // Batch-fetch all attendees in one query instead of N individual lookups
-      const attendeeIds = Array.from(new Set(tickets.map(t => t.attendeeId)));
-      const attendeesList = attendeeIds.length > 0
-        ? await storage.getAttendeesByIds(attendeeIds)
-        : [];
-      const attendeeMap = new Map(attendeesList.map(a => [a.id, a]));
-      const results = tickets.map(ticket => {
-        const attendee = attendeeMap.get(ticket.attendeeId);
+      const results = await Promise.all(tickets.map(async (ticket) => {
+        const attendee = await storage.getAttendee(ticket.attendeeId);
         return {
           ticket: {
             id: ticket.id,
@@ -900,7 +808,7 @@ export async function registerRoutes(
             email: attendee.email,
           } : null,
         };
-      });
+      }));
       res.json(results);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch recent scans" });
@@ -949,7 +857,11 @@ export async function registerRoutes(
           id: attendee.id,
           fullName: attendee.fullName,
           email: attendee.email,
-          phone: attendee.phone ? attendee.phone.slice(0, 4) + "****" + attendee.phone.slice(-2) : null,
+          phone: attendee.phone
+            ? (attendee.phone.length >= 6
+                ? attendee.phone.slice(0, 4) + "****" + attendee.phone.slice(-2)
+                : "****")
+            : null,
           attendanceType: attendee.attendanceType,
           needsAccommodation: attendee.needsAccommodation,
           registeredAt: attendee.createdAt,
@@ -1030,7 +942,7 @@ export async function registerRoutes(
 
   // ========== LIVE STREAMING ROUTES ==========
 
-  // Get stream settings (public) — omits streamUrl for paid streams unless user has access
+  // Get stream settings (public)
   app.get("/api/stream/settings", async (req, res) => {
     try {
       const settings = await storage.getStreamSettings();
@@ -1041,20 +953,27 @@ export async function registerRoutes(
           isLive: false,
           streamTitle: "iMiklomelo kaDakamela Cultural Festival 2026 - Live",
           allowVideoFeed: false,
-          isFree: false,
         });
         return;
       }
-      const isFree = parseFloat(settings.streamPrice) === 0;
-      res.json({ ...settings, isFree });
+      res.json(settings);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch stream settings" });
     }
   });
 
-  // Check if current user is admin (for stream bypass)
-  app.get("/api/stream/admin-check", async (req, res) => {
-    res.json({ isAdmin: isAdminRequest(req) });
+  // Update stream settings (admin only)
+  app.put("/api/stream/settings", async (req, res) => {
+    if (!isAdminRequest(req)) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+    try {
+      const settings = await storage.upsertStreamSettings(req.body);
+      res.json(settings);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update stream settings" });
+    }
   });
 
   // Verify stream access code
@@ -1088,7 +1007,8 @@ export async function registerRoutes(
       const settings = await storage.getStreamSettings();
       const price = settings?.streamPrice || "15.00";
       
-      const accessCode = randomUUID().substring(0, 8).toUpperCase();
+      // Use 16 hex chars (64 bits entropy) — far harder to brute-force than 8 chars
+      const accessCode = randomUUID().replace(/-/g, "").substring(0, 16).toUpperCase();
       
       const streamAccess = await storage.createStreamAccess({
         fullName,
@@ -1146,6 +1066,32 @@ export async function registerRoutes(
     }
   });
 
+  app.post("/api/recordings", async (req, res) => {
+    if (!isAdminRequest(req)) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+    try {
+      const recording = await storage.createRecording(req.body);
+      res.json(recording);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to create recording" });
+    }
+  });
+
+  app.delete("/api/recordings/:id", async (req, res) => {
+    if (!isAdminRequest(req)) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+    try {
+      await storage.deleteRecording(req.params.id);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete recording" });
+    }
+  });
+
   // ========== VIDEO FEED ROUTES ==========
 
   // Get approved video posts (public)
@@ -1158,6 +1104,20 @@ export async function registerRoutes(
     }
   });
 
+  // Get all video posts (admin)
+  app.get("/api/video-feed/all", async (req, res) => {
+    if (!isAdminRequest(req)) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+    try {
+      const posts = await storage.getAllVideoPosts();
+      res.json(posts);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch video posts" });
+    }
+  });
+
   // Submit a video post
   app.post("/api/video-feed", async (req, res) => {
     try {
@@ -1167,15 +1127,25 @@ export async function registerRoutes(
         return;
       }
       
-      const parsed = insertVideoFeedPostSchema.safeParse(req.body);
-      if (!parsed.success) {
-        res.status(400).json({ error: "Invalid video post data", details: parsed.error.errors });
-        return;
-      }
-      const post = await storage.createVideoPost(parsed.data);
+      const post = await storage.createVideoPost(req.body);
       res.json(post);
     } catch (error) {
       res.status(500).json({ error: "Failed to submit video" });
+    }
+  });
+
+  // Approve/reject video post (admin)
+  app.put("/api/video-feed/:id/status", async (req, res) => {
+    if (!isAdminRequest(req)) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+    try {
+      const { status } = req.body;
+      const updated = await storage.updateVideoPostStatus(req.params.id, status);
+      res.json(updated);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update video status" });
     }
   });
 
@@ -1209,7 +1179,6 @@ export async function registerRoutes(
   const updateStreamSettingsSchema = z.object({
     streamUrl: z.string().optional(),
     streamTitle: z.string().optional(),
-    streamDescription: z.string().optional(),
     isLive: z.boolean().optional(),
     streamPrice: z.string().optional(),
     allowVideoFeed: z.boolean().optional(),

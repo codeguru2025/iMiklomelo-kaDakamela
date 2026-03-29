@@ -12,13 +12,12 @@ import {
   type StreamSettings, type InsertStreamSettings, type Recording, type InsertRecording
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, or, sql, inArray } from "drizzle-orm";
+import { eq, desc, or, sql } from "drizzle-orm";
 
 export interface IStorage {
   // Attendees
   getAttendees(): Promise<Attendee[]>;
   getAttendee(id: string): Promise<Attendee | undefined>;
-  getAttendeesByIds(ids: string[]): Promise<Attendee[]>;
   createAttendee(attendee: InsertAttendee): Promise<Attendee>;
 
   // Camps
@@ -116,11 +115,6 @@ export class DatabaseStorage implements IStorage {
   async getAttendee(id: string): Promise<Attendee | undefined> {
     const [attendee] = await db.select().from(attendees).where(eq(attendees.id, id));
     return attendee;
-  }
-
-  async getAttendeesByIds(ids: string[]): Promise<Attendee[]> {
-    if (ids.length === 0) return [];
-    return db.select().from(attendees).where(inArray(attendees.id, ids));
   }
 
   async createAttendee(attendee: InsertAttendee): Promise<Attendee> {
@@ -424,8 +418,9 @@ export class DatabaseStorage implements IStorage {
   }
 
   async likeVideoPost(id: string): Promise<VideoFeedPost | undefined> {
+    // Atomic increment — avoids race condition from read-then-write pattern
     const [updated] = await db.update(videoFeedPosts)
-      .set({ likes: sql`coalesce(${videoFeedPosts.likes}, 0) + 1` })
+      .set({ likes: sql`${videoFeedPosts.likes} + 1` })
       .where(eq(videoFeedPosts.id, id))
       .returning();
     return updated;

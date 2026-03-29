@@ -17,7 +17,7 @@ services:
       - key: DATABASE_URL
         scope: RUN_TIME
         type: SECRET
-        value: "${dakamela.DATABASE_URL}"
+        value: "${db.DATABASE_URL}"
       - key: APP_URL
         scope: RUN_TIME
         value: https://dakamela-n729i.ondigitalocean.app
@@ -28,9 +28,6 @@ services:
         scope: RUN_TIME
         type: SECRET
         value: change-me
-      - key: SUPERUSER_EMAIL
-        scope: RUN_TIME
-        value: ausiziba@gmail.com
       - key: ADMIN_SECRET_KEY
         scope: RUN_TIME
         type: SECRET
@@ -70,18 +67,10 @@ services:
       - key: DO_SPACES_CDN_ENDPOINT
         scope: RUN_TIME
         value: https://dakamela-uploads.lon1.cdn.digitaloceanspaces.com
-      - key: GOOGLE_CLIENT_ID
-        scope: RUN_TIME
-        type: SECRET
-        value: change-me
-      - key: GOOGLE_CLIENT_SECRET
-        scope: RUN_TIME
-        type: SECRET
-        value: change-me
 
 databases:
   - engine: PG
-    name: dakamela
+    name: db
     num_nodes: 1
     size: db-s-dev-database
     version: "16"

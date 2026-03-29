@@ -65,9 +65,7 @@ export function Footer() {
             <h4 className="font-semibold text-sm uppercase tracking-wider">Follow Us</h4>
             <div className="flex gap-3">
               <a
-                href="https://www.facebook.com/profile.php?id=61575132930031"
-                target="_blank"
-                rel="noopener noreferrer"
+                href="#"
                 className="h-10 w-10 rounded-md bg-muted flex items-center justify-center hover-elevate"
                 aria-label="Facebook"
                 data-testid="social-facebook"
@@ -75,9 +73,7 @@ export function Footer() {
                 <Facebook className="h-5 w-5" />
               </a>
               <a
-                href="https://www.instagram.com/imiklomelofestival?igsh=MXNiNHozbWdpNTE3eg=="
-                target="_blank"
-                rel="noopener noreferrer"
+                href="#"
                 className="h-10 w-10 rounded-md bg-muted flex items-center justify-center hover-elevate"
                 aria-label="Instagram"
                 data-testid="social-instagram"
@@ -85,11 +81,9 @@ export function Footer() {
                 <Instagram className="h-5 w-5" />
               </a>
               <a
-                href="https://x.com/mbusidakamela?s=21"
-                target="_blank"
-                rel="noopener noreferrer"
+                href="#"
                 className="h-10 w-10 rounded-md bg-muted flex items-center justify-center hover-elevate"
-                aria-label="X (Twitter)"
+                aria-label="Twitter"
                 data-testid="social-twitter"
               >
                 <Twitter className="h-5 w-5" />
@@ -112,9 +106,7 @@ export function Footer() {
 
         <div className="border-t mt-6 pt-6 flex flex-col items-center gap-3">
           <div className="flex items-center gap-3">
-            <a href="https://www.chibikhulu.com" target="_blank" rel="noopener noreferrer">
-              <img src={chibikhululogo} alt="Chibikhulu" className="h-10 w-10 rounded-full object-cover hover:opacity-80 transition-opacity" />
-            </a>
+            <img src={chibikhululogo} alt="Chibikhulu" className="h-10 w-10 rounded-full object-cover" />
             <div className="text-center">
               <p className="text-sm text-muted-foreground">
                 Created by <span className="font-semibold text-foreground">Chibikhulu</span>

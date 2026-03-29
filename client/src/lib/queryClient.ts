@@ -12,11 +12,9 @@ export async function apiRequest(
   url: string,
   data?: unknown | undefined,
 ): Promise<Response> {
-  const headers: Record<string, string> = { "X-Requested-With": "XMLHttpRequest" };
-  if (data) headers["Content-Type"] = "application/json";
   const res = await fetch(url, {
     method,
-    headers,
+    headers: data ? { "Content-Type": "application/json" } : {},
     body: data ? JSON.stringify(data) : undefined,
     credentials: "include",
   });
@@ -31,7 +29,9 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
-    const res = await fetch(queryKey.join("/") as string, {
+    // Filter out falsy segments so a missing param like undefined never produces "/api/foo/undefined"
+    const url = (queryKey as Array<string | undefined>).filter(Boolean).join("/");
+    const res = await fetch(url, {
       credentials: "include",
     });
 

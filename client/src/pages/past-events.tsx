@@ -29,7 +29,6 @@ export default function PastEvents() {
 
   const { data: pastEvents, isLoading } = useQuery<PastEventWithDetails[]>({
     queryKey: ["/api/past-events"],
-    staleTime: 5 * 60_000,
   });
 
   return (

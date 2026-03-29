@@ -51,9 +51,11 @@ export async function initializePayment(request: PaynowInitRequest): Promise<Pay
     return { status: "Error", error: "Payment system not configured" };
   }
 
-  const baseUrl = request.returnUrl 
-    || process.env.APP_URL 
-    || "https://localhost:5000";
+  const baseUrl = request.returnUrl || process.env.APP_URL;
+  if (!baseUrl) {
+    console.error("APP_URL is not configured — Paynow callbacks cannot reach this server");
+    return { status: "Error", error: "Payment gateway not properly configured" };
+  }
   const returnUrl = baseUrl;
   const resultUrl = request.resultUrl || `${baseUrl}/api/payments/callback`;
 
@@ -158,7 +160,16 @@ export function verifyPaynowHash(data: Record<string, string>): boolean {
   if (!receivedHash) {
     return false;
   }
-  
+
+  // Reject callbacks missing the minimum fields required to compute a valid hash
+  const requiredFields = ["reference", "amount", "status"] as const;
+  for (const field of requiredFields) {
+    if (!data[field]) {
+      console.warn(`Paynow callback missing required field for hash verification: ${field}`);
+      return false;
+    }
+  }
+
   const valuesToHash: string[] = [];
   const orderedKeys = ["reference", "amount", "status", "paynowreference", "pollurl"];
   

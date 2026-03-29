@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -7,12 +7,11 @@ import { useToast } from "@/hooks/use-toast";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Video, Play, Lock, Loader2, Tv, Users, Clock, CheckCircle2, Share2, Shield } from "lucide-react";
+import { Video, Play, Lock, Loader2, Tv, Users, Clock, CheckCircle2 } from "lucide-react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { z } from "zod";
 import type { StreamSettings, Recording } from "@shared/schema";
-import { StreamPlayer } from "@/components/stream-player";
 
 const accessCodeSchema = z.object({
   accessCode: z.string().min(6, "Please enter your access code"),
@@ -33,21 +32,12 @@ export default function LiveStream() {
   const [accessEmail, setAccessEmail] = useState("");
   const [showPurchaseForm, setShowPurchaseForm] = useState(false);
 
-  const { data: streamSettings, isLoading: settingsLoading } = useQuery<StreamSettings & { isFree?: boolean }>({
+  const { data: streamSettings, isLoading: settingsLoading } = useQuery<StreamSettings>({
     queryKey: ["/api/stream/settings"],
-    staleTime: 30_000,
-    refetchOnWindowFocus: true,
-  });
-
-  const { data: adminCheck } = useQuery<{ isAdmin: boolean }>({
-    queryKey: ["/api/stream/admin-check"],
-    staleTime: 60_000,
-    retry: false,
   });
 
   const { data: recordings } = useQuery<Recording[]>({
     queryKey: ["/api/recordings"],
-    staleTime: 5 * 60_000,
   });
 
   const accessForm = useForm<AccessCodeForm>({
@@ -94,52 +84,7 @@ export default function LiveStream() {
 
   const streamPrice = streamSettings?.streamPrice || "15.00";
   const isLive = streamSettings?.isLive || false;
-  const isFree = streamSettings?.isFree || parseFloat(streamPrice) === 0;
-  const isAdmin = adminCheck?.isAdmin || false;
   const freeRecordings = recordings?.filter(r => r.isFree) || [];
-
-  // Auto-grant access for free streams and admins
-  useEffect(() => {
-    if (isFree && !hasAccess) {
-      setHasAccess(true);
-      setAccessEmail("free-access");
-    }
-  }, [isFree, hasAccess]);
-
-  useEffect(() => {
-    if (isAdmin && !hasAccess) {
-      setHasAccess(true);
-      setAccessEmail("admin");
-    }
-  }, [isAdmin, hasAccess]);
-
-  // Check URL params for access code (return from payment)
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const code = params.get("code");
-    if (code && !hasAccess) {
-      verifyAccessMutation.mutate({ accessCode: code });
-    }
-  }, []);
-
-  const shareLink = `${window.location.origin}/live-stream`;
-
-  const handleShare = async () => {
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: streamSettings?.streamTitle || "iMiklomelo kaDakamela Live Stream",
-          text: isFree ? "Watch the festival live for free!" : `Watch the festival live - $${streamPrice} USD`,
-          url: shareLink,
-        });
-      } catch {
-        // User cancelled share
-      }
-    } else {
-      await navigator.clipboard.writeText(shareLink);
-      toast({ title: "Link copied!", description: "Share this link with friends and family." });
-    }
-  };
 
   if (settingsLoading) {
     return (
@@ -163,35 +108,11 @@ export default function LiveStream() {
           <p className="text-lg text-white/80 max-w-2xl mx-auto">
             Can't make it to Dakamela Hall? Experience the iMiklomelo kaDakamela Cultural Festival live, wherever you are.
           </p>
-          <div className="flex items-center justify-center gap-3 mt-6">
-            {isLive && (
-              <Badge className="bg-red-500 text-white animate-pulse">
-                <span className="w-2 h-2 bg-white rounded-full mr-2 inline-block animate-ping" />
-                LIVE NOW
-              </Badge>
-            )}
-            {isFree && (
-              <Badge className="bg-green-500 text-white">
-                FREE
-              </Badge>
-            )}
-            {isAdmin && (
-              <Badge className="bg-blue-500 text-white">
-                <Shield className="w-3 h-3 mr-1" />
-                Admin Access
-              </Badge>
-            )}
-          </div>
           {isLive && (
-            <Button
-              variant="secondary"
-              size="sm"
-              className="mt-4 gap-2"
-              onClick={handleShare}
-            >
-              <Share2 className="w-4 h-4" />
-              Share Stream Link
-            </Button>
+            <Badge className="mt-6 bg-red-500 text-white animate-pulse">
+              <span className="w-2 h-2 bg-white rounded-full mr-2 animate-ping" />
+              LIVE NOW
+            </Badge>
           )}
         </div>
       </section>
@@ -199,45 +120,42 @@ export default function LiveStream() {
       <div className="container mx-auto px-4 py-12">
         <div className="grid lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2">
-            {hasAccess && streamSettings?.streamUrl ? (
+            {hasAccess && isLive ? (
               <Card className="overflow-hidden">
-                <StreamPlayer
-                  url={streamSettings.streamUrl}
-                  title={streamSettings?.streamTitle || "Live Stream"}
-                />
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <CardTitle className="font-serif">{streamSettings?.streamTitle || "Live Stream"}</CardTitle>
-                      <CardDescription>{streamSettings?.streamDescription}</CardDescription>
+                <div className="aspect-video bg-black relative">
+                  {streamSettings?.streamUrl ? (
+                    <iframe
+                      src={streamSettings.streamUrl}
+                      className="w-full h-full"
+                      allow="autoplay; fullscreen; picture-in-picture"
+                      allowFullScreen
+                    />
+                  ) : (
+                    <div className="absolute inset-0 flex items-center justify-center text-white">
+                      <div className="text-center">
+                        <Video className="w-16 h-16 mx-auto mb-4 opacity-50" />
+                        <p>Stream will begin shortly...</p>
+                      </div>
                     </div>
-                    <Button variant="outline" size="sm" className="gap-2 shrink-0" onClick={handleShare}>
-                      <Share2 className="w-4 h-4" />
-                      Share
-                    </Button>
-                  </div>
+                  )}
+                </div>
+                <CardHeader>
+                  <CardTitle className="font-serif">{streamSettings?.streamTitle || "Live Stream"}</CardTitle>
+                  <CardDescription>{streamSettings?.streamDescription}</CardDescription>
                 </CardHeader>
               </Card>
-            ) : hasAccess && !streamSettings?.streamUrl ? (
+            ) : hasAccess && !isLive ? (
               <Card>
                 <CardContent className="py-16 text-center">
                   <Clock className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
-                  <h3 className="font-serif text-2xl font-bold mb-2">Stream Not Available Yet</h3>
+                  <h3 className="font-serif text-2xl font-bold mb-2">Stream Not Active</h3>
                   <p className="text-muted-foreground mb-4">
-                    The live stream will begin on April 3-6, 2026. {isFree ? "This is a free stream — you'll be able to watch when it starts." : "You have access and will be able to watch when it starts."}
+                    The live stream will begin on April 3-6, 2026. You have access and will be able to watch when it starts.
                   </p>
-                  {!isFree && accessEmail !== "admin" && (
-                    <Badge variant="outline">
-                      <CheckCircle2 className="w-3 h-3 mr-1" />
-                      Access Confirmed: {accessEmail}
-                    </Badge>
-                  )}
-                  {isAdmin && (
-                    <Badge variant="outline" className="ml-2">
-                      <Shield className="w-3 h-3 mr-1" />
-                      Admin Access
-                    </Badge>
-                  )}
+                  <Badge variant="outline">
+                    <CheckCircle2 className="w-3 h-3 mr-1" />
+                    Access Confirmed: {accessEmail}
+                  </Badge>
                 </CardContent>
               </Card>
             ) : (
@@ -378,11 +296,7 @@ export default function LiveStream() {
               <CardContent className="space-y-2 text-sm text-muted-foreground">
                 <p><strong>Dates:</strong> April 3-6, 2026</p>
                 <p><strong>Location:</strong> Dakamela Hall, Nkayi District, Zimbabwe</p>
-                {isFree ? (
-                  <p><strong>Stream Access:</strong> <span className="text-green-600 font-semibold">FREE</span></p>
-                ) : (
-                  <p><strong>Stream Price:</strong> ${streamPrice} USD (one-time payment)</p>
-                )}
+                <p><strong>Stream Price:</strong> ${streamPrice} USD (one-time payment)</p>
               </CardContent>
             </Card>
 

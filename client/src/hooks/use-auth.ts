@@ -37,15 +37,10 @@ export function useAuth() {
     },
   });
 
-  const role = user?.role || "public";
-
   return {
     user,
     isLoading,
     isAuthenticated: !!user,
-    isAdmin: role === "admin" || role === "superuser",
-    isSuperuser: role === "superuser",
-    role,
     logout: logoutMutation.mutate,
     isLoggingOut: logoutMutation.isPending,
   };

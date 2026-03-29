@@ -68,17 +68,22 @@ export default function ScanTickets() {
 
   const markUsedMutation = useMutation({
     mutationFn: async (ticketId: string) => {
-      return apiRequest("POST", `/api/tickets/${ticketId}/mark-used`);
+      const res = await apiRequest("POST", `/api/tickets/${ticketId}/mark-used`);
+      return res.json() as Promise<{ scannedAt: string | null; status: string }>;
     },
-    onSuccess: () => {
-      toast({ 
-        title: "Check-in Successful", 
-        description: "Ticket has been marked as used." 
+    onSuccess: (updatedTicket) => {
+      toast({
+        title: "Check-in Successful",
+        description: "Ticket has been marked as used."
       });
       if (scannedTicket) {
         setScannedTicket({
           ...scannedTicket,
-          ticket: { ...scannedTicket.ticket, status: "used", usedAt: new Date().toISOString() }
+          ticket: {
+            ...scannedTicket.ticket,
+            status: "used",
+            usedAt: updatedTicket.scannedAt, // authoritative server timestamp
+          },
         });
       }
       queryClient.invalidateQueries({ queryKey: ["/api/admin/tickets/recent-scans"] });

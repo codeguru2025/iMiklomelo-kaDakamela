@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -12,19 +12,16 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/hooks/use-auth";
 import { 
   Users, Tent, Building2, Award, Bell, Settings, Shield, 
   CheckCircle, XCircle, Clock, Plus, RefreshCw, Eye,
   BarChart3, Download, DollarSign, TrendingUp, UserCheck,
-  Globe, MapPin, Calendar, ScanLine, Upload, X, Tv, Video,
-  LogIn, Crown, UserCog, Loader2
+  Globe, MapPin, Calendar, ScanLine, Upload, X, Tv, Video
 } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Attendee, Reservation, Company, Announcement, PastEvent, StreamSettings, VideoFeedPost, Recording } from "@shared/schema";
-import type { User } from "@shared/models/auth";
 import { Image as ImageIcon } from "lucide-react";
 import { 
   PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, 
@@ -92,7 +89,7 @@ function ImageUpdateDialog({ event, onUpdate, isPending }: {
     try {
       const response = await fetch("/api/uploads/request-url", {
         method: "POST",
-        headers: { "Content-Type": "application/json", "X-Requested-With": "XMLHttpRequest" },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: file.name,
           size: file.size,
@@ -201,12 +198,10 @@ function StreamingManagement() {
   const [streamSettings, setStreamSettings] = useState({
     streamUrl: "",
     streamTitle: "iMiklomelo kaDakamela Cultural Festival 2026 - Live Stream",
-    streamDescription: "",
     isLive: false,
     streamPrice: "15.00",
     allowVideoFeed: false,
   });
-  const isFreeStream = parseFloat(streamSettings.streamPrice) === 0;
   const [newRecording, setNewRecording] = useState({
     title: "",
     description: "",
@@ -217,26 +212,18 @@ function StreamingManagement() {
 
   const { data: settings, isLoading: settingsLoading } = useQuery<StreamSettings>({
     queryKey: ["/api/admin/stream-settings"],
-    staleTime: 30_000,
-    refetchOnWindowFocus: true,
   });
 
   const { data: videoPosts, isLoading: postsLoading } = useQuery<VideoFeedPost[]>({
     queryKey: ["/api/admin/video-posts"],
-    staleTime: 30_000,
-    refetchOnWindowFocus: true,
   });
 
   const { data: recordings, isLoading: recordingsLoading } = useQuery<Recording[]>({
     queryKey: ["/api/recordings"],
-    staleTime: 30_000,
-    refetchOnWindowFocus: true,
   });
 
   const { data: streamStats } = useQuery<{ totalSubscribers: number; totalRevenue: number }>({
     queryKey: ["/api/admin/stream-stats"],
-    staleTime: 30_000,
-    refetchOnWindowFocus: true,
   });
 
   const updateSettingsMutation = useMutation({
@@ -283,22 +270,16 @@ function StreamingManagement() {
     },
   });
 
-  // Sync settings from server — track whether we've initialized from server data
-  const [initialized, setInitialized] = useState(false);
-  
-  useEffect(() => {
-    if (settings && !settingsLoading && !initialized) {
-      setStreamSettings({
-        streamUrl: settings.streamUrl || "",
-        streamTitle: settings.streamTitle || "iMiklomelo kaDakamela Cultural Festival 2026 - Live Stream",
-        streamDescription: settings.streamDescription || "",
-        isLive: settings.isLive || false,
-        streamPrice: settings.streamPrice || "15.00",
-        allowVideoFeed: settings.allowVideoFeed || false,
-      });
-      setInitialized(true);
-    }
-  }, [settings, settingsLoading, initialized]);
+  // Sync settings from server
+  if (settings && !settingsLoading && streamSettings.streamUrl === "" && settings.streamUrl) {
+    setStreamSettings({
+      streamUrl: settings.streamUrl || "",
+      streamTitle: settings.streamTitle || "iMiklomelo kaDakamela Cultural Festival 2026 - Live Stream",
+      isLive: settings.isLive || false,
+      streamPrice: settings.streamPrice || "15.00",
+      allowVideoFeed: settings.allowVideoFeed || false,
+    });
+  }
 
   const pendingPosts = videoPosts?.filter(p => p.status === "pending") || [];
 
@@ -366,52 +347,15 @@ function StreamingManagement() {
               />
             </div>
             <div>
-              <Label>Stream Description</Label>
+              <Label>Stream Price (USD)</Label>
               <Input
-                value={streamSettings.streamDescription}
-                onChange={(e) => setStreamSettings(prev => ({ ...prev, streamDescription: e.target.value }))}
-                placeholder="Brief description of the stream"
-                data-testid="input-stream-description"
+                type="number"
+                step="0.01"
+                value={streamSettings.streamPrice}
+                onChange={(e) => setStreamSettings(prev => ({ ...prev, streamPrice: e.target.value }))}
+                placeholder="15.00"
+                data-testid="input-stream-price"
               />
-            </div>
-            <div>
-              <Label>Access Type</Label>
-              <div className="flex items-center gap-4 mt-2">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="accessType"
-                    checked={isFreeStream}
-                    onChange={() => setStreamSettings(prev => ({ ...prev, streamPrice: "0.00" }))}
-                    className="w-4 h-4 accent-primary"
-                  />
-                  <span className="text-sm font-medium">Free</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="accessType"
-                    checked={!isFreeStream}
-                    onChange={() => setStreamSettings(prev => ({ ...prev, streamPrice: "15.00" }))}
-                    className="w-4 h-4 accent-primary"
-                  />
-                  <span className="text-sm font-medium">Paid</span>
-                </label>
-              </div>
-              {!isFreeStream && (
-                <div className="mt-2">
-                  <Label>Stream Price (USD)</Label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    min="0.01"
-                    value={streamSettings.streamPrice}
-                    onChange={(e) => setStreamSettings(prev => ({ ...prev, streamPrice: e.target.value }))}
-                    placeholder="15.00"
-                    data-testid="input-stream-price"
-                  />
-                </div>
-              )}
             </div>
             <div className="flex items-center gap-4 pt-2">
               <label className="flex items-center gap-2 cursor-pointer">
@@ -435,32 +379,6 @@ function StreamingManagement() {
                 <span className="text-sm font-medium">Allow Video Feed Posts</span>
               </label>
             </div>
-            {streamSettings.isLive && streamSettings.streamUrl && (
-              <div className="p-3 bg-muted rounded-md">
-                <Label className="text-xs text-muted-foreground">Shareable Stream Link</Label>
-                <div className="flex items-center gap-2 mt-1">
-                  <Input
-                    readOnly
-                    value={`${window.location.origin}/live-stream`}
-                    className="text-sm bg-background"
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      navigator.clipboard.writeText(`${window.location.origin}/live-stream`);
-                      toast({ title: "Link copied!", description: "Share this link with your audience." });
-                    }}
-                  >
-                    Copy
-                  </Button>
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {isFreeStream ? "Anyone with this link can watch for free" : `Viewers will be prompted to pay $${streamSettings.streamPrice} USD`}
-                </p>
-              </div>
-            )}
             <Button
               onClick={() => updateSettingsMutation.mutate(streamSettings)}
               disabled={updateSettingsMutation.isPending}
@@ -645,114 +563,39 @@ function StreamingManagement() {
 }
 
 export default function Admin() {
-  const { user, isLoading: authLoading, isAuthenticated, isAdmin: userIsAdmin, isSuperuser } = useAuth();
-
-  if (authLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <Loader2 className="w-8 h-8 animate-spin mx-auto text-primary" />
-          <p className="text-muted-foreground">Checking access...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/20 dark:to-orange-950/20">
-        <Card className="max-w-md w-full mx-4">
-          <CardHeader className="text-center">
-            <Shield className="w-12 h-12 mx-auto mb-2 text-primary" />
-            <CardTitle className="font-serif text-2xl">Admin Access</CardTitle>
-            <CardDescription>Sign in with Google to access the admin dashboard</CardDescription>
-          </CardHeader>
-          <CardContent className="text-center">
-            <a href="/api/login">
-              <Button size="lg" className="gap-2 w-full">
-                <LogIn className="w-5 h-5" />
-                Sign in with Google
-              </Button>
-            </a>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  if (!userIsAdmin) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/20 dark:to-orange-950/20">
-        <Card className="max-w-md w-full mx-4">
-          <CardHeader className="text-center">
-            <XCircle className="w-12 h-12 mx-auto mb-2 text-destructive" />
-            <CardTitle className="font-serif text-2xl">Access Denied</CardTitle>
-            <CardDescription>
-              You are signed in as <strong>{user?.email}</strong> but you do not have admin privileges.
-              Contact the superuser to request access.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="text-center">
-            <a href="/api/logout">
-              <Button variant="outline" className="gap-2">
-                <LogIn className="w-5 h-5" />
-                Sign out
-              </Button>
-            </a>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  return <AdminDashboard isSuperuser={isSuperuser} currentUser={user} />;
-}
-
-function AdminDashboard({ isSuperuser, currentUser }: { isSuperuser: boolean; currentUser: User | null | undefined }) {
   const { toast } = useToast();
   const [newAnnouncement, setNewAnnouncement] = useState({ title: "", content: "" });
   const [newPastEvent, setNewPastEvent] = useState({ 
     year: new Date().getFullYear(), 
     title: "", 
     summary: "", 
+    description: "",
     edition: "",
     imageUrl: "" 
   });
 
   const { data: attendees, isLoading: attendeesLoading } = useQuery<Attendee[]>({
     queryKey: ["/api/attendees"],
-    staleTime: 30_000,
-    refetchOnWindowFocus: true,
   });
 
   const { data: reservations, isLoading: reservationsLoading } = useQuery<Reservation[]>({
     queryKey: ["/api/reservations"],
-    staleTime: 30_000,
-    refetchOnWindowFocus: true,
   });
 
   const { data: companies, isLoading: companiesLoading } = useQuery<Company[]>({
     queryKey: ["/api/companies"],
-    staleTime: 30_000,
-    refetchOnWindowFocus: true,
   });
 
   const { data: announcements, isLoading: announcementsLoading } = useQuery<Announcement[]>({
     queryKey: ["/api/announcements"],
-    staleTime: 30_000,
-    refetchOnWindowFocus: true,
   });
 
   const { data: analytics, isLoading: analyticsLoading } = useQuery<Analytics>({
     queryKey: ["/api/admin/analytics"],
-    staleTime: 30_000,
-    refetchOnWindowFocus: true,
   });
 
   const { data: pastEvents, isLoading: pastEventsLoading } = useQuery<PastEvent[]>({
     queryKey: ["/api/past-events"],
-    staleTime: 30_000,
-    refetchOnWindowFocus: true,
   });
 
   const updateCompanyStatus = useMutation({
@@ -802,7 +645,7 @@ function AdminDashboard({ isSuperuser, currentUser }: { isSuperuser: boolean; cu
     onSuccess: () => {
       toast({ title: "Past event created" });
       queryClient.invalidateQueries({ queryKey: ["/api/past-events"] });
-      setNewPastEvent({ year: new Date().getFullYear(), title: "", summary: "", edition: "", imageUrl: "" });
+      setNewPastEvent({ year: new Date().getFullYear(), title: "", summary: "", description: "", edition: "", imageUrl: "" });
     },
     onError: (error: Error) => {
       toast({ title: "Failed to create past event", description: error.message, variant: "destructive" });
@@ -848,11 +691,7 @@ function AdminDashboard({ isSuperuser, currentUser }: { isSuperuser: boolean; cu
             </h1>
             <p className="text-muted-foreground mt-1">Manage event operations and applications</p>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground hidden sm:inline">
-              {currentUser?.email}
-              {isSuperuser && <Badge variant="secondary" className="ml-2"><Crown className="w-3 h-3 mr-1" />Superuser</Badge>}
-            </span>
+          <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={handleExportCSV} data-testid="button-export">
               <Download className="w-4 h-4 mr-2" />
               Export CSV
@@ -864,12 +703,6 @@ function AdminDashboard({ isSuperuser, currentUser }: { isSuperuser: boolean; cu
               <RefreshCw className="w-4 h-4 mr-2" />
               Refresh
             </Button>
-            <a href="/api/logout">
-              <Button variant="outline" size="sm">
-                <LogIn className="w-4 h-4 mr-2" />
-                Sign out
-              </Button>
-            </a>
           </div>
         </div>
 
@@ -890,7 +723,7 @@ function AdminDashboard({ isSuperuser, currentUser }: { isSuperuser: boolean; cu
         </div>
 
         <Tabs defaultValue="analytics" className="space-y-6">
-          <TabsList className={`grid w-full ${isSuperuser ? 'grid-cols-9' : 'grid-cols-8'} max-w-5xl`}>
+          <TabsList className="grid w-full grid-cols-8 max-w-5xl">
             <TabsTrigger value="analytics" data-testid="tab-analytics">
               <BarChart3 className="w-4 h-4 mr-2" />
               Analytics
@@ -923,12 +756,6 @@ function AdminDashboard({ isSuperuser, currentUser }: { isSuperuser: boolean; cu
               <Settings className="w-4 h-4 mr-2" />
               Settings
             </TabsTrigger>
-            {isSuperuser && (
-              <TabsTrigger value="users" data-testid="tab-users">
-                <UserCog className="w-4 h-4 mr-2" />
-                Users
-              </TabsTrigger>
-            )}
           </TabsList>
 
           <TabsContent value="analytics">
@@ -1397,6 +1224,15 @@ function AdminDashboard({ isSuperuser, currentUser }: { isSuperuser: boolean; cu
                         />
                       </div>
                       <div>
+                        <Label>Description</Label>
+                        <Textarea 
+                          value={newPastEvent.description}
+                          onChange={(e) => setNewPastEvent(prev => ({ ...prev, description: e.target.value }))}
+                          placeholder="Full description"
+                          data-testid="input-event-description"
+                        />
+                      </div>
+                      <div>
                         <Label className="flex items-center gap-2">
                           <ImageIcon className="w-4 h-4" />
                           Image URL
@@ -1598,132 +1434,8 @@ function AdminDashboard({ isSuperuser, currentUser }: { isSuperuser: boolean; cu
               </CardContent>
             </Card>
           </TabsContent>
-
-          {isSuperuser && (
-            <TabsContent value="users">
-              <UserManagement />
-            </TabsContent>
-          )}
         </Tabs>
       </div>
     </div>
-  );
-}
-
-function UserManagement() {
-  const { toast } = useToast();
-  const { data: users, isLoading } = useQuery<User[]>({
-    queryKey: ["/api/admin/users"],
-    staleTime: 30_000,
-    refetchOnWindowFocus: true,
-  });
-
-  const updateRoleMutation = useMutation({
-    mutationFn: async ({ id, role }: { id: string; role: string }) => {
-      return apiRequest("PUT", `/api/admin/users/${id}/role`, { role });
-    },
-    onSuccess: () => {
-      toast({ title: "User role updated" });
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
-    },
-    onError: (error: Error) => {
-      toast({ title: "Failed to update role", description: error.message, variant: "destructive" });
-    },
-  });
-
-  const roleLabel = (role: string) => {
-    switch (role) {
-      case "superuser": return "Superuser";
-      case "admin": return "Admin";
-      default: return "Public";
-    }
-  };
-
-  const roleBadgeVariant = (role: string) => {
-    switch (role) {
-      case "superuser": return "default" as const;
-      case "admin": return "secondary" as const;
-      default: return "outline" as const;
-    }
-  };
-
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <UserCog className="w-5 h-5" />
-          User Management
-        </CardTitle>
-        <CardDescription>Manage admin access. Only users who have signed in via Google appear here.</CardDescription>
-      </CardHeader>
-      <CardContent>
-        {isLoading ? (
-          <Skeleton className="h-32 w-full" />
-        ) : !users?.length ? (
-          <p className="text-muted-foreground text-sm">No users found.</p>
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead>Joined</TableHead>
-                <TableHead>Action</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {users.map((u) => (
-                <TableRow key={u.id}>
-                  <TableCell className="font-medium">
-                    <div className="flex items-center gap-2">
-                      {u.profileImageUrl && (
-                        <img src={u.profileImageUrl} alt="" className="w-6 h-6 rounded-full" />
-                      )}
-                      {u.firstName} {u.lastName}
-                    </div>
-                  </TableCell>
-                  <TableCell>{u.email}</TableCell>
-                  <TableCell>
-                    <Badge variant={roleBadgeVariant(u.role)}>
-                      {u.role === "superuser" && <Crown className="w-3 h-3 mr-1" />}
-                      {roleLabel(u.role)}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {u.createdAt ? new Date(u.createdAt).toLocaleDateString() : "—"}
-                  </TableCell>
-                  <TableCell>
-                    {u.role === "superuser" ? (
-                      <span className="text-xs text-muted-foreground">Protected</span>
-                    ) : u.role === "admin" ? (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => updateRoleMutation.mutate({ id: u.id, role: "public" })}
-                        disabled={updateRoleMutation.isPending}
-                      >
-                        <XCircle className="w-3 h-3 mr-1" />
-                        Revoke Admin
-                      </Button>
-                    ) : (
-                      <Button
-                        variant="default"
-                        size="sm"
-                        onClick={() => updateRoleMutation.mutate({ id: u.id, role: "admin" })}
-                        disabled={updateRoleMutation.isPending}
-                      >
-                        <Shield className="w-3 h-3 mr-1" />
-                        Make Admin
-                      </Button>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        )}
-      </CardContent>
-    </Card>
   );
 }
